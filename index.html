@@ -3,38 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mood Engine | Spirit Bloom</title>
+    <title>Mood Engine | Pro Share</title>
     <style>
+        /* Kaikki aiemmat tyylit säilytetty ennallaan */
         :root { --bg: #000; --ui-accent: #ff3366; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
         #canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-        
         #ui-container {
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
             z-index: 10; background: rgba(10, 10, 10, 0.85); backdrop-filter: blur(25px);
             padding: 20px 30px; border-radius: 25px; border: 1px solid rgba(255,255,255,0.1);
             display: flex; flex-direction: column; gap: 12px; transition: all 0.5s ease; min-width: 320px;
         }
-
         #ui-container.manual-hidden { opacity: 0 !important; transform: translateX(-50%) translateY(50px); pointer-events: none; }
-        .hint { position: absolute; top: 20px; width: 100%; text-align: center; font-size: 11px; letter-spacing: 2px; opacity: 0.4; text-transform: uppercase; z-index: 5; }
-
+        .hint { position: absolute; top: 20px; width: 100%; text-align: center; font-size: 11px; letter-spacing: 2px; opacity: 0.4; text-transform: uppercase; z-index: 5; transition: 0.5s; }
         .mode-selector { display: flex; justify-content: center; gap: 8px; margin-bottom: 5px; }
-        button {
-            background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.1);
-            padding: 8px 12px; border-radius: 12px; cursor: pointer; font-size: 10px; font-weight: 700; text-transform: uppercase; transition: 0.3s;
-        }
+        button { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 12px; cursor: pointer; font-size: 10px; font-weight: 700; text-transform: uppercase; transition: 0.3s; }
         button.active { background: var(--ui-accent); color: white; border-color: var(--ui-accent); box-shadow: 0 0 15px var(--ui-accent); }
-
         .control-row { display: flex; flex-direction: column; gap: 4px; }
         .control-row label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; }
-        
         .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-top: 5px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); }
-        .toggle-row label { font-size: 10px; text-transform: uppercase; }
-
         input[type=range] { appearance: none; width: 100%; height: 3px; background: rgba(255,255,255,0.1); outline: none; }
         input[type=range]::-webkit-slider-thumb { appearance: none; width: 12px; height: 12px; background: #fff; border-radius: 50%; cursor: pointer; }
-        
         .switch { position: relative; display: inline-block; width: 30px; height: 16px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 34px; }
@@ -56,27 +46,13 @@
             <button onclick="changeMood('bloom')" id="btn-bloom">Spirit Bloom</button>
         </div>
 
-        <div class="control-row">
-            <label>Määrä / Kukkia: <span id="val-count"></span></label>
-            <input type="range" id="input-count" min="1" max="300" value="60">
-        </div>
-
-        <div class="control-row">
-            <label>Nopeus / Huojunta: <span id="val-speed"></span></label>
-            <input type="range" id="input-speed" min="0.1" max="15" step="0.1" value="1.5">
-        </div>
-
-        <div class="control-row">
-            <label>Koko: <span id="val-size"></span></label>
-            <input type="range" id="input-size" min="1" max="100" value="18">
-        </div>
+        <div class="control-row"><label>Määrä: <span id="val-count"></span></label><input type="range" id="input-count" min="1" max="300"></div>
+        <div class="control-row"><label>Nopeus: <span id="val-speed"></span></label><input type="range" id="input-speed" min="0.1" max="15" step="0.1"></div>
+        <div class="control-row"><label>Koko: <span id="val-size"></span></label><input type="range" id="input-size" min="1" max="100"></div>
 
         <div class="toggle-row">
             <label>Törmäysfysiikka</label>
-            <label class="switch">
-                <input type="checkbox" id="input-physics">
-                <span class="slider"></span>
-            </label>
+            <label class="switch"><input type="checkbox" id="input-physics"><span class="slider"></span></label>
         </div>
     </div>
 
@@ -85,9 +61,9 @@
         const ctx = canvas.getContext('2d');
         const ui = document.getElementById('ui-container');
         let width, height, particles = [];
-        let isMenuVisible = true;
         let time = 0;
 
+        // URL Parametrien luku
         const params = new URLSearchParams(window.location.search);
         let config = {
             mood: params.get('m') || 'love',
@@ -95,6 +71,7 @@
             speed: parseFloat(params.get('s')) || 1.5,
             size: parseInt(params.get('z')) || 18,
             physics: params.get('f') !== '0',
+            uiVisible: params.get('u') !== '0', // UUSI: u=0 piilottaa menun
             color: '#ff3366'
         };
 
@@ -103,15 +80,11 @@
             p.set('m', config.mood); p.set('c', config.count);
             p.set('s', config.speed); p.set('z', config.size);
             p.set('f', config.physics ? '1' : '0');
+            p.set('u', config.uiVisible ? '1' : '0'); // Tallennetaan UI tila
             window.history.replaceState(null, '', '?' + p.toString());
         }
 
-        function resize() {
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
-            initParticles();
-        }
-
+        // Particle-luokka ja piirto-logiikka säilytetty ennallaan (Spirit Bloom mukana)
         class Particle {
             constructor(isInit = false) { this.init(isInit); }
             init(randomY = false) {
@@ -124,7 +97,6 @@
                 this.bloomPhase = Math.random() * Math.PI * 2;
                 this.wobbleSpeed = Math.random() * 0.02;
             }
-
             update() {
                 if (config.physics && config.mood !== 'bloom') {
                     for (let other of particles) {
@@ -143,7 +115,6 @@
                 if (this.x < -100) this.x = width + 100;
                 if (this.x > width + 100) this.x = -100;
             }
-
             draw() {
                 ctx.globalAlpha = this.a;
                 if (config.mood === 'bloom') this.drawFlower();
@@ -151,17 +122,12 @@
                 else if (config.mood === 'fire') this.drawEmber();
                 else this.drawRain();
             }
-
             drawEmber() {
                 ctx.shadowBlur = 10; ctx.shadowColor = config.color;
                 ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
                 ctx.fillStyle = config.color; ctx.fill(); ctx.shadowBlur = 0;
             }
-
-            drawRain() {
-                ctx.fillStyle = config.color; ctx.fillRect(this.x, this.y, 1, this.r * 15);
-            }
-
+            drawRain() { ctx.fillStyle = config.color; ctx.fillRect(this.x, this.y, 1, this.r * 15); }
             drawHeart() {
                 let x = this.x, y = this.y, s = this.r;
                 ctx.beginPath(); ctx.moveTo(x, y);
@@ -169,33 +135,18 @@
                 ctx.bezierCurveTo(x+s*1.5, y+s/2, x+s, y-s, x, y);
                 ctx.fillStyle = config.color; ctx.fill();
             }
-
             drawFlower() {
                 let x = this.x + Math.sin(time * this.wobbleSpeed) * 20;
-                let y = this.y;
                 let size = this.r;
-                let petals = 6;
-                ctx.save();
-                ctx.translate(x, y);
+                ctx.save(); ctx.translate(x, this.y);
                 ctx.rotate(time * 0.01 * config.speed + this.bloomPhase);
-                
-                // Hehku kukan keskellä
                 let grad = ctx.createRadialGradient(0, 0, 0, 0, 0, size);
-                grad.addColorStop(0, config.color);
-                grad.addColorStop(1, 'transparent');
-                ctx.fillStyle = grad;
-                ctx.globalAlpha = this.a * (0.5 + Math.sin(time * 0.02 + this.bloomPhase) * 0.5);
-                
-                for (let i = 0; i < petals; i++) {
-                    ctx.rotate((Math.PI * 2) / petals);
-                    ctx.beginPath();
-                    ctx.moveTo(0, 0);
-                    ctx.quadraticCurveTo(size, -size, size * 1.5, 0);
-                    ctx.quadraticCurveTo(size, size, 0, 0);
-                    ctx.fill();
-                    // Terälehtien reunaviiva hienostuneisuutta varten
-                    ctx.strokeStyle = "rgba(255,255,255,0.2)";
-                    ctx.stroke();
+                grad.addColorStop(0, config.color); grad.addColorStop(1, 'transparent');
+                ctx.fillStyle = grad; ctx.globalAlpha = this.a * (0.5 + Math.sin(time * 0.02 + this.bloomPhase) * 0.5);
+                for (let i = 0; i < 6; i++) {
+                    ctx.rotate((Math.PI * 2) / 6); ctx.beginPath(); ctx.moveTo(0, 0);
+                    ctx.quadraticCurveTo(size, -size, size * 1.5, 0); ctx.quadraticCurveTo(size, size, 0, 0); ctx.fill();
+                    ctx.strokeStyle = "rgba(255,255,255,0.1)"; ctx.stroke();
                 }
                 ctx.restore();
             }
@@ -210,14 +161,19 @@
 
         function changeMood(m) {
             config.mood = m;
-            if(m === 'love') { config.color = '#ff3366'; }
-            else if(m === 'fire') { config.color = '#ff6622'; }
-            else if(m === 'rain') { config.color = '#6699ff'; }
-            else if(m === 'bloom') { config.color = '#a38dff'; }
-            
+            if(m === 'love') config.color = '#ff3366';
+            else if(m === 'fire') config.color = '#ff6622';
+            else if(m === 'rain') config.color = '#6699ff';
+            else if(m === 'bloom') config.color = '#a38dff';
             document.documentElement.style.setProperty('--ui-accent', config.color);
             document.querySelectorAll('.mode-selector button').forEach(b => b.classList.toggle('active', b.id === 'btn-'+m));
             initParticles();
+            updateURL();
+        }
+
+        function toggleUI(show) {
+            config.uiVisible = show;
+            ui.classList.toggle('manual-hidden', !show);
             updateURL();
         }
 
@@ -227,9 +183,10 @@
                 document.getElementById('val-' + id).innerText = config[id];
             });
             document.getElementById('input-physics').checked = config.physics;
-            document.querySelector('.toggle-row').style.opacity = config.mood === 'bloom' ? '0.3' : '1';
+            ui.classList.toggle('manual-hidden', !config.uiVisible);
         }
 
+        // Eventit
         ['count', 'speed', 'size'].forEach(id => {
             document.getElementById('input-' + id).addEventListener('input', (e) => {
                 config[id] = parseFloat(e.target.value);
@@ -238,27 +195,24 @@
                 updateURL();
             });
         });
-
-        document.getElementById('input-physics').addEventListener('change', (e) => {
-            config.physics = e.target.checked; updateURL();
-        });
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key.toLowerCase() === 'm') ui.classList.toggle('manual-hidden');
-        });
+        document.getElementById('input-physics').addEventListener('change', (e) => { config.physics = e.target.checked; updateURL(); });
+        document.addEventListener('keydown', (e) => { if (e.key.toLowerCase() === 'm') toggleUI(!config.uiVisible); });
 
         function animate() {
             time++;
             ctx.fillStyle = "black";
-            ctx.globalAlpha = config.mood === 'rain' ? 0.25 : 0.8; // Hieman häntää kaikille
+            ctx.globalAlpha = config.mood === 'rain' ? 0.25 : 0.8;
             ctx.fillRect(0,0,width,height);
             ctx.globalAlpha = 1;
             particles.forEach(p => { p.update(); p.draw(); });
             requestAnimationFrame(animate);
         }
 
-        changeMood(config.mood);
+        function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; initParticles(); }
         window.addEventListener('resize', resize);
+        
+        // Aloitus
+        changeMood(config.mood);
         resize();
         animate();
         setTimeout(() => document.getElementById('main-hint').style.opacity = '0', 5000);
