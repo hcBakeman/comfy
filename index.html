@@ -3,53 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mood Engine | High-Voltage Edition</title>
+    <title>Mood Engine | Rainbow Edition</title>
     <style>
         :root { --bg: #000; --ui-accent: #ff4400; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
         #canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-        
         #ui-container, #main-hint { opacity: 0; pointer-events: none; transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
-
         #ui-container {
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
             z-index: 10; background: rgba(10, 10, 10, 0.85); backdrop-filter: blur(25px);
             padding: 20px 30px; border-radius: 25px; border: 1px solid rgba(255,255,255,0.1);
             display: flex; flex-direction: column; gap: 12px; min-width: 320px;
         }
-
-        #ui-container.visible { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: all; }
-        #main-hint.visible { opacity: 0.4; transform: translateX(-50%) translateY(0); }
-
-        #main-hint { 
-            position: absolute; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px); 
-            width: auto; white-space: nowrap; text-align: center; font-size: 11px; 
-            letter-spacing: 2px; text-transform: uppercase; z-index: 5; 
-        }
-
-        .mode-selector { display: flex; justify-content: center; gap: 8px; margin-bottom: 5px; }
+        #ui-container.visible, #main-hint.visible { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: all; }
+        #main-hint.visible { opacity: 0.4; }
+        #main-hint { position: absolute; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; z-index: 5; }
+        .mode-selector { display: flex; justify-content: center; gap: 8px; margin-bottom: 5px; flex-wrap: wrap; }
         button { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 12px; cursor: pointer; font-size: 10px; font-weight: 700; text-transform: uppercase; transition: 0.3s; }
         button.active { background: var(--ui-accent); color: white; border-color: var(--ui-accent); box-shadow: 0 0 15px var(--ui-accent); }
-        
         .control-row { display: flex; flex-direction: column; gap: 4px; }
         .control-row label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; }
-        
         input[type=range] { appearance: none; width: 100%; height: 3px; background: rgba(255,255,255,0.1); outline: none; }
         input[type=range]::-webkit-slider-thumb { appearance: none; width: 12px; height: 12px; background: #fff; border-radius: 50%; cursor: pointer; }
-        .hue-slider::-webkit-slider-runnable-track { background: linear-gradient(to right, #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%); border-radius: 3px; height: 4px; }
-        
+        .hue-slider { background: linear-gradient(to right, #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%) !important; }
         .switch-container { display: flex; align-items: center; justify-content: space-between; margin-top: 5px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); }
         .switch { position: relative; display: inline-block; width: 30px; height: 16px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 34px; }
         .slider:before { position: absolute; content: ""; height: 10px; width: 10px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: var(--ui-accent); }
-        input:checked + .slider:before { transform: translateX(14px); }
     </style>
 </head>
 <body>
 
-    <div id="main-hint">M = Menu | All settings saved to URL</div>
+    <div id="main-hint">M = Toggle Menu | Link saves settings</div>
     <canvas id="canvas"></canvas>
 
     <div id="ui-container">
@@ -60,12 +47,16 @@
             <button onclick="changeMood('rain')" id="btn-rain">Rain</button>
             <button onclick="changeMood('bloom')" id="btn-bloom">Spirit Bloom</button>
         </div>
-        
-        <div class="control-row"><label>Amount: <span id="val-count"></span></label><input type="range" id="input-count" min="1" max="500"></div>
+        <div class="control-row"><label>Intensity: <span id="val-count"></span></label><input type="range" id="input-count" min="1" max="500"></div>
         <div class="control-row"><label>Speed: <span id="val-speed"></span></label><input type="range" id="input-speed" min="0.1" max="15" step="0.1"></div>
-        <div class="control-row"><label>Size: <span id="val-size"></span></label><input type="range" id="input-size" min="1" max="100"></div>
-        <div class="control-row"><label>Color (Hue): <span id="val-hue"></span></label><input type="range" id="input-hue" class="hue-slider" min="0" max="360" step="1"></div>
+        <div class="control-row"><label>Size: <span id="val-size"></span></label><input type="range" id="input-size" min="1" max="250"></div>
+        <div class="control-row"><label>Hue: <span id="val-hue"></span></label><input type="range" id="input-hue" class="hue-slider" min="0" max="360" step="1"></div>
         
+        <div class="switch-container" style="border-top: none; padding-top: 0; margin-top: -5px;">
+            <label style="font-size: 9px; text-transform: uppercase; opacity: 0.8;">Auto Hue (Rainbow)</label>
+            <label class="switch"><input type="checkbox" id="input-autohue"><span class="slider"></span></label>
+        </div>
+
         <div class="switch-container">
             <label style="font-size: 9px; text-transform: uppercase; opacity: 0.8;">Flicker Glow</label>
             <label class="switch"><input type="checkbox" id="input-glow"><span class="slider"></span></label>
@@ -81,182 +72,188 @@
         const ctx = canvas.getContext('2d');
         const ui = document.getElementById('ui-container');
         const hint = document.getElementById('main-hint');
-        let width, height, particles = [];
-        let time = 0;
+        let width, height, particles = [], time = 0;
 
-        const params = new URLSearchParams(window.location.search);
+        const urlParams = new URLSearchParams(window.location.search);
         let config = {
-            mood: params.get('m') || 'fire',
-            count: parseInt(params.get('c')) || 100,
-            speed: parseFloat(params.get('s')) || 1.2,
-            size: parseInt(params.get('z')) || 40,
-            hue: parseInt(params.get('h')) || 15,
-            glow: params.get('g') !== '0',
-            physics: params.get('f') !== '0',
-            uiVisible: params.get('u') === '1'
+            mood: urlParams.get('m') || 'fire',
+            count: parseInt(urlParams.get('c')) || 80,
+            speed: parseFloat(urlParams.get('s')) || 2.0,
+            size: parseInt(urlParams.get('z')) || 100,
+            hue: parseInt(urlParams.get('h')) || 20,
+            autohue: urlParams.get('ah') === '1',
+            glow: urlParams.get('g') !== '0',
+            physics: urlParams.get('p') !== '0',
+            uiVisible: urlParams.get('u') === '1'
         };
+
+        function updateURL() {
+            const p = new URLSearchParams();
+            p.set('m', config.mood); p.set('c', config.count); p.set('s', config.speed);
+            p.set('z', config.size); p.set('h', Math.floor(config.hue)); 
+            p.set('ah', config.autohue ? '1' : '0');
+            p.set('g', config.glow ? '1' : '0'); p.set('p', config.physics ? '1' : '0'); 
+            p.set('u', config.uiVisible ? '1' : '0');
+            window.history.replaceState(null, '', window.location.pathname + '?' + p.toString());
+        }
 
         class Particle {
             constructor(isInit = false) { this.init(isInit); }
             init(randomY = false) {
                 this.x = Math.random() * width;
-                this.y = randomY ? Math.random() * height : (config.mood === 'rain' ? -100 : height + 100);
-                this.r = Math.random() * config.size + (config.mood === 'bloom' ? 25 : 5);
-                this.vx = (Math.random() - 0.5) * (config.speed * 0.4);
-                this.vy = config.mood === 'rain' ? (Math.random() * config.speed + 8) : -(Math.random() * config.speed * 0.5 + 0.2);
-                this.life = 1.0;
-                this.decay = config.mood === 'fire' ? (Math.random() * 0.002 + 0.001) : (Math.random() * 0.005 + 0.002);
+                this.y = randomY ? Math.random() * height : (config.mood === 'rain' ? -100 : height + 250);
+                this.r = Math.random() * config.size * 0.5 + 10;
                 this.phase = Math.random() * Math.PI * 2;
-                this.pulseSpeed = 0.02 + Math.random() * 0.02;
-                this.driftSpeed = 0.02 + Math.random() * 0.03;
-                this.individualHueShift = (Math.random() - 0.5) * 40;
-                this.fireStretch = 3 + Math.random() * 4;
-                this.fireWidth = 0.8 + Math.random() * 1.5;
-                this.isSpark = Math.random() > 0.9;
-                this.rotationSpeed = (Math.random() - 0.5) * 0.02;
+                this.rot = Math.random() * Math.PI * 2;
+                this.rotVel = (Math.random() - 0.5) * 0.05;
+                this.hueOff = (Math.random() - 0.5) * 60;
+                this.drift = 0.5 + Math.random(); 
+                this.baseVx = (Math.random() - 0.5) * 0.5 * this.drift;
+                this.baseVy = config.mood === 'rain' ? (Math.random() + 5) : -(Math.random() * 0.5 + 0.3) * this.drift;
+                this.vx = this.baseVx;
+                this.vy = this.baseVy;
             }
-
             update() {
-                if (config.physics && ['balls', 'bloom', 'comfy'].includes(config.mood)) {
+                if (config.physics && ['balls', 'comfy', 'fire', 'bloom'].includes(config.mood)) {
                     for (let other of particles) {
                         if (this === other) continue;
-                        let dx = this.x - other.x, dy = this.y - other.y;
-                        let dist = Math.sqrt(dx*dx + dy*dy);
-                        let minDist = (this.r + other.r) * 0.8;
+                        let dx = other.x - this.x, dy = other.y - this.y, dist = Math.sqrt(dx*dx + dy*dy), minDist = (this.r + other.r) * 0.45;
                         if (dist < minDist && dist > 0) {
-                            let force = (minDist - dist) / dist * 0.005 * (config.speed + 1);
-                            this.vx += dx * force; this.vy += dy * force;
-                            this.vx *= 0.98; this.vy *= 0.98;
+                            let angle = Math.atan2(dy, dx);
+                            let ax = Math.cos(angle) * 0.05;
+                            let ay = Math.sin(angle) * 0.05;
+                            this.vx -= ax; this.vy -= ay;
+                            other.vx += ax; other.vy += ay;
                         }
                     }
+                    this.vx *= 0.98; this.vy *= 0.98;
                 }
-                if (config.mood === 'fire') {
-                    this.x += Math.cos(time * this.driftSpeed + this.phase) * (0.5 + config.speed * 0.2);
-                } else if (config.mood === 'bloom') {
-                    this.x += Math.sin(time * 0.01 + this.phase) * 0.5;
-                } else { this.x += this.vx; }
-                this.y += this.vy;
-                if (this.y < -200 || this.y > height + 200 || this.life <= 0) this.init();
+                this.vx += (this.baseVx - this.vx) * 0.02;
+                this.vy += (this.baseVy - this.vy) * 0.02;
+                this.x += this.vx * config.speed;
+                this.y += this.vy * config.speed;
+                this.rot += this.rotVel * (config.speed * 0.5);
+                if (this.y < -500 || this.y > height + 500 || this.x < -500 || this.x > width + 500) this.init();
             }
-
             draw() {
                 ctx.save();
-                
-                // --- AGGRESSIVE FLICKER LOGIC ---
-                // Higher contrast flicker: jump between 0.4 and 1.3
-                let flicker = 1;
-                if (config.glow) {
-                    const noise = Math.random();
-                    flicker = noise > 0.92 ? 1.5 : (noise < 0.15 ? 0.3 : 1.0);
-                    // Add a secondary subtle vibration
-                    flicker *= (0.9 + Math.sin(time * 0.5) * 0.1);
-                }
-
-                const pulse = Math.sin(time * this.pulseSpeed + this.phase);
-                const h = config.hue + this.individualHueShift;
+                const flicker = config.glow ? (0.7 + Math.sin(time * 0.1 + this.phase) * 0.3) : 1;
+                const h = config.hue + this.hueOff;
+                if (config.glow) ctx.globalCompositeOperation = 'lighter';
 
                 if (config.mood === 'bloom') {
-                    ctx.translate(this.x, this.y); ctx.rotate(time * this.rotationSpeed);
-                    const layers = 3;
-                    for (let l = 0; l < layers; l++) {
-                        const layerScale = 1 - (l * 0.3);
-                        ctx.save(); ctx.rotate((time * 0.02) * (l % 2 === 0 ? 1 : -1));
-                        const currentR = this.r * layerScale * (1 + pulse * 0.1);
-                        for (let i = 0; i < 6; i++) {
-                            ctx.rotate((Math.PI * 2) / 6);
-                            const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, currentR * 1.8);
-                            grad.addColorStop(0, `hsla(${h + (l * 20)}, 100%, 75%, ${0.9 * flicker / (l+1)})`);
-                            grad.addColorStop(1, 'transparent');
-                            ctx.fillStyle = grad; ctx.beginPath(); ctx.moveTo(0, 0);
-                            ctx.bezierCurveTo(currentR * 0.5, -currentR, currentR * 1.5, -currentR * 0.5, currentR * 2, 0);
-                            ctx.bezierCurveTo(currentR * 1.5, currentR * 0.5, currentR * 0.5, currentR, 0, 0); ctx.fill();
+                    ctx.translate(this.x, this.y); ctx.rotate(this.rot + time * 0.005);
+                    const baseR = this.r * 0.8;
+                    if (config.glow) {
+                        let g = ctx.createRadialGradient(0,0,0,0,0,baseR*2.5);
+                        g.addColorStop(0, `hsla(${h}, 100%, 50%, ${0.3 * flicker})`);
+                        g.addColorStop(1, 'transparent');
+                        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0,0,baseR*2.5,0,Math.PI*2); ctx.fill();
+                    }
+                    for(let layer=0; layer<2; layer++) {
+                        ctx.fillStyle = layer === 0 ? `hsla(${h-20}, 100%, 60%, ${0.5*flicker})` : `hsla(${h+20}, 100%, 80%, ${0.7*flicker})`;
+                        let sizeMult = layer === 0 ? 1 : 0.7;
+                        for(let i=0; i<5; i++) {
+                            ctx.rotate((Math.PI*2)/5);
+                            ctx.beginPath(); ctx.moveTo(0,0);
+                            ctx.bezierCurveTo(baseR*sizeMult, -baseR*sizeMult, baseR*sizeMult*1.5, -baseR*sizeMult*0.5, baseR*sizeMult*1.5, 0);
+                            ctx.bezierCurveTo(baseR*sizeMult*1.5, baseR*sizeMult*0.5, baseR*sizeMult, baseR*sizeMult, 0,0); ctx.fill();
                         }
-                        ctx.restore();
                     }
                 } else if (config.mood === 'fire') {
-                    ctx.globalCompositeOperation = 'lighter';
-                    if (!this.isSpark) {
-                        let s = this.r * (0.6 + (this.y / height) * 0.4);
-                        let grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, s * (2.5 * flicker));
-                        grad.addColorStop(0, `hsla(${h + 30}, 100%, 80%, ${1.0 * flicker})`);
-                        grad.addColorStop(0.3, `hsla(${h}, 100%, 50%, ${0.5 * flicker})`);
-                        grad.addColorStop(1, 'transparent');
-                        ctx.fillStyle = grad; ctx.beginPath();
-                        let sw = s * this.fireWidth, sh = s * this.fireStretch;
-                        ctx.moveTo(this.x - sw, this.y); ctx.bezierCurveTo(this.x - sw, this.y - sh * 0.2, this.x, this.y - sh * 0.8, this.x, this.y - sh);
-                        ctx.bezierCurveTo(this.x, this.y - sh * 0.8, this.x + sw, this.y - sh * 0.2, this.x + sw, this.y); ctx.fill();
-                    } else {
-                        ctx.fillStyle = "#fff"; ctx.globalAlpha = 0.6 * flicker;
-                        ctx.beginPath(); ctx.arc(this.x, this.y, 1, 0, Math.PI * 2); ctx.fill();
+                    const s = this.r * (1 + Math.sin(time * 0.05 + this.phase) * 0.3);
+                    if (config.glow) {
+                        let g = ctx.createRadialGradient(this.x, this.y-s*0.5, 0, this.x, this.y-s*0.5, s*2);
+                        g.addColorStop(0, `hsla(${h}, 100%, 50%, ${0.4 * flicker})`);
+                        g.addColorStop(1, 'transparent');
+                        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(this.x, this.y-s*0.5, s*2, 0, Math.PI*2); ctx.fill();
                     }
+                    ctx.fillStyle = `hsla(${h}, 100%, 60%, ${flicker})`;
+                    ctx.beginPath();
+                    for(let i=0; i<6; i++) {
+                        let angle = (i / 6) * Math.PI * 2 + this.rot;
+                        let dist = s * (1 + Math.sin(time * 0.05 + i) * 0.5);
+                        ctx.lineTo(this.x + Math.cos(angle) * dist, this.y + Math.sin(angle) * dist - (s*0.5));
+                    }
+                    ctx.closePath(); ctx.fill();
                 } else if (config.mood === 'comfy') {
-                    const s = this.r; if (config.glow) { ctx.shadowBlur = s * 2 * flicker; ctx.shadowColor = `hsla(${h}, 100%, 60%, 0.6)`; }
-                    ctx.fillStyle = `hsl(${h}, 100%, 50%)`; ctx.beginPath(); ctx.moveTo(this.x, this.y);
+                    const s = this.r * 0.6;
+                    if (config.glow) {
+                        let g = ctx.createRadialGradient(this.x, this.y+s*0.5, 0, this.x, this.y+s*0.5, s*3);
+                        g.addColorStop(0, `hsla(${h}, 100%, 50%, ${0.3 * flicker})`);
+                        g.addColorStop(1, 'transparent');
+                        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(this.x, this.y+s*0.5, s*3, 0, Math.PI*2); ctx.fill();
+                    }
+                    ctx.fillStyle = `hsla(${h}, 100%, 50%, ${flicker})`;
+                    ctx.beginPath(); ctx.moveTo(this.x, this.y);
                     ctx.bezierCurveTo(this.x-s, this.y-s, this.x-s*1.5, this.y+s/2, this.x, this.y+s*1.3);
                     ctx.bezierCurveTo(this.x+s*1.5, this.y+s/2, this.x+s, this.y-s, this.x, this.y); ctx.fill();
                 } else if (config.mood === 'balls') {
-                    if (config.glow) { ctx.shadowBlur = this.r * 2.5 * flicker; ctx.shadowColor = `hsla(${h}, 100%, 60%, 0.7)`; }
-                    ctx.fillStyle = `hsl(${h}, 100%, 50%)`; ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI*2); ctx.fill();
+                    if (config.glow) {
+                        let g = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.r*1.5);
+                        g.addColorStop(0, `hsla(${h}, 100%, 50%, ${0.4 * flicker})`);
+                        g.addColorStop(1, 'transparent');
+                        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(this.x, this.y, this.r*1.5, 0, Math.PI*2); ctx.fill();
+                    }
+                    ctx.fillStyle = `hsla(${h}, 100%, 50%, ${flicker})`; ctx.beginPath(); ctx.arc(this.x, this.y, this.r/2, 0, Math.PI*2); ctx.fill();
                 } else if (config.mood === 'rain') {
-                    ctx.strokeStyle = `hsla(${h}, 100%, 75%, ${0.7 * flicker})`; ctx.lineWidth = 2;
-                    ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(this.x, this.y + this.r * 5); ctx.stroke();
+                    ctx.strokeStyle = `hsla(${h}, 100%, 75%, ${0.6 * flicker})`; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(this.x, this.y + this.r); ctx.stroke();
                 }
                 ctx.restore();
             }
         }
 
         function initParticles() { particles = []; for (let i = 0; i < config.count; i++) particles.push(new Particle(true)); }
-        
         function changeMood(m) {
-            config.mood = m; const hues = { comfy: 345, fire: 15, balls: 45, rain: 210, bloom: 280 };
-            if (!params.has('h')) config.hue = hues[m];
-            document.querySelectorAll('.mode-selector button').forEach(b => b.classList.toggle('active', b.id === 'btn-'+m));
+            config.mood = m; const hues = { comfy: 345, fire: 22, balls: 200, rain: 210, bloom: 300 };
+            if (!urlParams.has('h')) config.hue = hues[m];
             updateAccent(); initParticles(); updateURL();
+            document.querySelectorAll('.mode-selector button').forEach(b => b.classList.toggle('active', b.id === 'btn-'+m));
         }
-
-        function updateAccent() { document.documentElement.style.setProperty('--ui-accent', `hsl(${config.hue}, 100%, 50%)`); document.getElementById('val-hue').innerText = config.hue + "°"; }
-        
-        function updateURL() {
-            const p = new URLSearchParams();
-            p.set('m', config.mood); p.set('c', config.count); p.set('s', config.speed);
-            p.set('z', config.size); p.set('h', config.hue); p.set('g', config.glow ? '1' : '0');
-            p.set('f', config.physics ? '1' : '0'); p.set('u', config.uiVisible ? '1' : '0');
-            window.history.replaceState(null, '', '?' + p.toString());
+        function updateAccent() { 
+            document.documentElement.style.setProperty('--ui-accent', `hsl(${config.hue}, 100%, 50%)`); 
+            document.getElementById('val-hue').innerText = Math.floor(config.hue) + "°"; 
+            document.getElementById('input-hue').value = config.hue;
         }
-
         function updateUI() {
-            ['count', 'speed', 'size', 'hue'].forEach(id => { 
-                document.getElementById('input-' + id).value = config[id]; 
-                document.getElementById('val-' + id).innerText = config[id] + (id === 'hue' ? "°" : ""); 
-            });
+            ['count', 'speed', 'size', 'hue'].forEach(id => { document.getElementById('input-'+id).value = config[id]; document.getElementById('val-'+id).innerText = Math.floor(config[id]); });
             document.getElementById('input-glow').checked = config.glow; 
             document.getElementById('input-physics').checked = config.physics;
-            ui.classList.toggle('visible', config.uiVisible); 
-            hint.classList.toggle('visible', config.uiVisible);
+            document.getElementById('input-autohue').checked = config.autohue;
+            ui.classList.toggle('visible', config.uiVisible); hint.classList.toggle('visible', config.uiVisible);
         }
-
         ['count', 'speed', 'size', 'hue'].forEach(id => {
-            document.getElementById('input-' + id).addEventListener('input', (e) => {
+            document.getElementById('input-'+id).addEventListener('input', (e) => {
                 config[id] = parseFloat(e.target.value); updateUI(); updateURL();
-                if (id === 'hue') updateAccent(); if (id === 'count') initParticles();
+                if (id === 'hue') { config.autohue = false; document.getElementById('input-autohue').checked = false; updateAccent(); }
+                if (id === 'count') initParticles();
             });
         });
-
         document.getElementById('input-glow').addEventListener('change', (e) => { config.glow = e.target.checked; updateURL(); });
         document.getElementById('input-physics').addEventListener('change', (e) => { config.physics = e.target.checked; updateURL(); });
+        document.getElementById('input-autohue').addEventListener('change', (e) => { config.autohue = e.target.checked; updateURL(); });
         document.addEventListener('keydown', (e) => { if (e.key.toLowerCase() === 'm') { config.uiVisible = !config.uiVisible; updateUI(); updateURL(); } });
 
         function animate() {
-            time++; ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = "black";
-            ctx.globalAlpha = (config.mood === 'fire' || config.mood === 'rain') ? 0.15 : 0.3;
+            time++;
+            if (config.autohue) {
+                config.hue = (config.hue + 0.5) % 360;
+                updateAccent();
+            }
+            ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = "black";
+            ctx.globalAlpha = (config.mood === 'fire' || config.mood === 'bloom') ? 0.15 : 0.25; 
             ctx.fillRect(0,0,width,height);
+            if (config.mood === 'fire') {
+                let grad = ctx.createLinearGradient(0, height, 0, height - 400);
+                grad.addColorStop(0, `hsla(${config.hue}, 100%, 15%, 0.4)`); grad.addColorStop(1, 'transparent');
+                ctx.fillStyle = grad; ctx.fillRect(0, height-400, width, 400);
+            }
             particles.forEach(p => { p.update(); p.draw(); });
             requestAnimationFrame(animate);
         }
-
         function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; initParticles(); }
-        window.addEventListener('resize', resize);
-        resize(); updateUI(); changeMood(config.mood); animate();
+        window.addEventListener('resize', resize); resize(); updateUI(); changeMood(config.mood); animate();
     </script>
 </body>
 </html>
