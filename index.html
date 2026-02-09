@@ -5,26 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mood Engine | Pro Share</title>
     <style>
-        /* Kaikki aiemmat tyylit säilytetty ennallaan */
         :root { --bg: #000; --ui-accent: #ff3366; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
         #canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        
         #ui-container {
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
             z-index: 10; background: rgba(10, 10, 10, 0.85); backdrop-filter: blur(25px);
             padding: 20px 30px; border-radius: 25px; border: 1px solid rgba(255,255,255,0.1);
             display: flex; flex-direction: column; gap: 12px; transition: all 0.5s ease; min-width: 320px;
         }
+
         #ui-container.manual-hidden { opacity: 0 !important; transform: translateX(-50%) translateY(50px); pointer-events: none; }
-        .hint { position: absolute; top: 20px; width: 100%; text-align: center; font-size: 11px; letter-spacing: 2px; opacity: 0.4; text-transform: uppercase; z-index: 5; transition: 0.5s; }
+        
+        /* Hint-tekstin tyyli */
+        .hint { 
+            position: absolute; top: 20px; width: 100%; text-align: center; 
+            font-size: 11px; letter-spacing: 2px; opacity: 0.4; 
+            text-transform: uppercase; z-index: 5; transition: opacity 0.5s; 
+        }
+        .hint.hidden { opacity: 0 !important; pointer-events: none; }
+
         .mode-selector { display: flex; justify-content: center; gap: 8px; margin-bottom: 5px; }
-        button { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 12px; cursor: pointer; font-size: 10px; font-weight: 700; text-transform: uppercase; transition: 0.3s; }
+        button {
+            background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.1);
+            padding: 8px 12px; border-radius: 12px; cursor: pointer; font-size: 10px; font-weight: 700; text-transform: uppercase; transition: 0.3s;
+        }
         button.active { background: var(--ui-accent); color: white; border-color: var(--ui-accent); box-shadow: 0 0 15px var(--ui-accent); }
+
         .control-row { display: flex; flex-direction: column; gap: 4px; }
         .control-row label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; }
+        
         .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-top: 5px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); }
         input[type=range] { appearance: none; width: 100%; height: 3px; background: rgba(255,255,255,0.1); outline: none; }
         input[type=range]::-webkit-slider-thumb { appearance: none; width: 12px; height: 12px; background: #fff; border-radius: 50%; cursor: pointer; }
+        
         .switch { position: relative; display: inline-block; width: 30px; height: 16px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 34px; }
@@ -45,11 +60,9 @@
             <button onclick="changeMood('rain')" id="btn-rain">Rain</button>
             <button onclick="changeMood('bloom')" id="btn-bloom">Spirit Bloom</button>
         </div>
-
         <div class="control-row"><label>Määrä: <span id="val-count"></span></label><input type="range" id="input-count" min="1" max="300"></div>
         <div class="control-row"><label>Nopeus: <span id="val-speed"></span></label><input type="range" id="input-speed" min="0.1" max="15" step="0.1"></div>
         <div class="control-row"><label>Koko: <span id="val-size"></span></label><input type="range" id="input-size" min="1" max="100"></div>
-
         <div class="toggle-row">
             <label>Törmäysfysiikka</label>
             <label class="switch"><input type="checkbox" id="input-physics"><span class="slider"></span></label>
@@ -60,10 +73,10 @@
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const ui = document.getElementById('ui-container');
+        const hint = document.getElementById('main-hint');
         let width, height, particles = [];
         let time = 0;
 
-        // URL Parametrien luku
         const params = new URLSearchParams(window.location.search);
         let config = {
             mood: params.get('m') || 'love',
@@ -71,7 +84,7 @@
             speed: parseFloat(params.get('s')) || 1.5,
             size: parseInt(params.get('z')) || 18,
             physics: params.get('f') !== '0',
-            uiVisible: params.get('u') !== '0', // UUSI: u=0 piilottaa menun
+            uiVisible: params.get('u') !== '0',
             color: '#ff3366'
         };
 
@@ -80,11 +93,11 @@
             p.set('m', config.mood); p.set('c', config.count);
             p.set('s', config.speed); p.set('z', config.size);
             p.set('f', config.physics ? '1' : '0');
-            p.set('u', config.uiVisible ? '1' : '0'); // Tallennetaan UI tila
+            p.set('u', config.uiVisible ? '1' : '0');
             window.history.replaceState(null, '', '?' + p.toString());
         }
 
-        // Particle-luokka ja piirto-logiikka säilytetty ennallaan (Spirit Bloom mukana)
+        // Particle ja Mood-logiikka ennallaan...
         class Particle {
             constructor(isInit = false) { this.init(isInit); }
             init(randomY = false) {
@@ -174,6 +187,8 @@
         function toggleUI(show) {
             config.uiVisible = show;
             ui.classList.toggle('manual-hidden', !show);
+            // Jos menu avataan, näytetään vinkki, muuten pidetään se piilossa
+            if (!show) hint.classList.add('hidden');
             updateURL();
         }
 
@@ -184,9 +199,11 @@
             });
             document.getElementById('input-physics').checked = config.physics;
             ui.classList.toggle('manual-hidden', !config.uiVisible);
+            
+            // TÄRKEÄ KORJAUS: Hint-tekstin piilotus alussa jos u=0
+            if (!config.uiVisible) hint.classList.add('hidden');
         }
 
-        // Eventit
         ['count', 'speed', 'size'].forEach(id => {
             document.getElementById('input-' + id).addEventListener('input', (e) => {
                 config[id] = parseFloat(e.target.value);
@@ -195,15 +212,14 @@
                 updateURL();
             });
         });
+
         document.getElementById('input-physics').addEventListener('change', (e) => { config.physics = e.target.checked; updateURL(); });
         document.addEventListener('keydown', (e) => { if (e.key.toLowerCase() === 'm') toggleUI(!config.uiVisible); });
 
         function animate() {
             time++;
-            ctx.fillStyle = "black";
-            ctx.globalAlpha = config.mood === 'rain' ? 0.25 : 0.8;
-            ctx.fillRect(0,0,width,height);
-            ctx.globalAlpha = 1;
+            ctx.fillStyle = "black"; ctx.globalAlpha = config.mood === 'rain' ? 0.25 : 0.8;
+            ctx.fillRect(0,0,width,height); ctx.globalAlpha = 1;
             particles.forEach(p => { p.update(); p.draw(); });
             requestAnimationFrame(animate);
         }
@@ -211,11 +227,12 @@
         function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; initParticles(); }
         window.addEventListener('resize', resize);
         
-        // Aloitus
         changeMood(config.mood);
         resize();
         animate();
-        setTimeout(() => document.getElementById('main-hint').style.opacity = '0', 5000);
+
+        // Ajastettu häivytys vain jos UI on näkyvissä
+        setTimeout(() => { if (config.uiVisible) hint.classList.add('hidden'); }, 5000);
     </script>
 </body>
 </html>
