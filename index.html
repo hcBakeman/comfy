@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comfy Engine | Rainbow Edition</title>
+    <title>Comfy Engine | S-Tier Release</title>
     <style>
         :root { --bg: #000; --ui-accent: #ff4400; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
@@ -13,7 +13,7 @@
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
             z-index: 10; background: rgba(10, 10, 10, 0.85); backdrop-filter: blur(25px);
             padding: 20px 30px; border-radius: 25px; border: 1px solid rgba(255,255,255,0.1);
-            display: flex; flex-direction: column; gap: 12px; min-width: 320px;
+            display: flex; flex-direction: column; gap: 12px; min-width: 340px;
         }
         #ui-container.visible, #main-hint.visible { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: all; }
         #main-hint.visible { opacity: 0.4; }
@@ -23,18 +23,30 @@
         button.active { background: var(--ui-accent); color: white; border-color: var(--ui-accent); box-shadow: 0 0 15px var(--ui-accent); }
         .control-row { display: flex; flex-direction: column; gap: 4px; }
         .control-row label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; }
+        
+        select { 
+            background: #111; color: #fff; border: 1px solid rgba(255,255,255,0.2); 
+            border-radius: 8px; font-size: 10px; padding: 6px; outline: none; cursor: pointer;
+            text-transform: uppercase; font-weight: bold;
+        }
+
         input[type=range] { appearance: none; width: 100%; height: 3px; background: rgba(255,255,255,0.1); outline: none; }
         input[type=range]::-webkit-slider-thumb { appearance: none; width: 12px; height: 12px; background: #fff; border-radius: 50%; cursor: pointer; }
         .hue-slider { background: linear-gradient(to right, #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%) !important; }
+        
         .switch-container { display: flex; align-items: center; justify-content: space-between; margin-top: 5px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); }
         .switch { position: relative; display: inline-block; width: 30px; height: 16px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 34px; }
         .slider:before { position: absolute; content: ""; height: 10px; width: 10px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: var(--ui-accent); }
+        
+        .mouse-setting, .fire-setting { display: none; }
+        .mouse-enabled .mouse-setting { display: flex; }
+        .fire-enabled .fire-setting { display: flex; }
     </style>
 </head>
-<body>
+<body class="mouse-enabled">
 
     <div id="main-hint">M = Toggle Menu | Link saves settings</div>
     <canvas id="canvas"></canvas>
@@ -42,18 +54,40 @@
     <div id="ui-container">
         <div class="mode-selector">
             <button onclick="changeMood('comfy')" id="btn-comfy">Comfy</button>
-            <button onclick="changeMood('fire')" id="btn-fire">Fire</button>
             <button onclick="changeMood('balls')" id="btn-balls">Balls</button>
-            <button onclick="changeMood('rain')" id="btn-rain">Rain</button>
             <button onclick="changeMood('bloom')" id="btn-bloom">Spirit Bloom</button>
+            <button onclick="changeMood('fire')" id="btn-fire">Fire</button>
+            <button onclick="changeMood('rain')" id="btn-rain">Rain</button>
         </div>
+        
         <div class="control-row"><label>Intensity: <span id="val-count"></span></label><input type="range" id="input-count" min="1" max="500"></div>
         <div class="control-row"><label>Speed: <span id="val-speed"></span></label><input type="range" id="input-speed" min="0.1" max="15" step="0.1"></div>
         <div class="control-row"><label>Size: <span id="val-size"></span></label><input type="range" id="input-size" min="1" max="250"></div>
         <div class="control-row"><label>Hue: <span id="val-hue"></span></label><input type="range" id="input-hue" class="hue-slider" min="0" max="360" step="1"></div>
         
-        <div class="switch-container" style="border-top: none; padding-top: 0; margin-top: -5px;">
-            <label style="font-size: 9px; text-transform: uppercase; opacity: 0.8;">Auto Hue (Rainbow)</label>
+        <div class="control-row"><label>Flicker Power: <span id="val-flickerStr"></span></label><input type="range" id="input-flickerStr" min="0" max="1" step="0.05"></div>
+        <div class="control-row"><label>Flicker Time: <span id="val-flickerSpeed"></span></label><input type="range" id="input-flickerSpeed" min="0.01" max="0.5" step="0.01"></div>
+
+        <div class="control-row mouse-setting">
+            <label>Avoid Radius: <span id="val-mradius"></span></label>
+            <input type="range" id="input-mradius" min="10" max="500" step="10">
+        </div>
+
+        <div class="control-row fire-setting">
+            <label>Fire Style</label>
+            <select id="input-fstyle">
+                <option value="poly">Polygonal</option>
+                <option value="fluid">Fluid Wisps</option>
+            </select>
+        </div>
+
+        <div class="switch-container mouse-setting" style="border-top: none; padding-top: 0; margin-top: -5px;">
+            <label style="font-size: 9px; text-transform: uppercase; opacity: 0.8; color: #00ffcc;">Mouse Interact</label>
+            <label class="switch"><input type="checkbox" id="input-mousehit"><span class="slider"></span></label>
+        </div>
+
+        <div class="switch-container">
+            <label style="font-size: 9px; text-transform: uppercase; opacity: 0.8;">Auto Hue</label>
             <label class="switch"><input type="checkbox" id="input-autohue"><span class="slider"></span></label>
         </div>
 
@@ -62,7 +96,7 @@
             <label class="switch"><input type="checkbox" id="input-glow"><span class="slider"></span></label>
         </div>
         <div class="switch-container" style="border-top: none; margin-top: 0; padding-top: 0;">
-            <label style="font-size: 9px; text-transform: uppercase; opacity: 0.8;">Physics</label>
+            <label style="font-size: 9px; text-transform: uppercase; opacity: 0.8;">Smooth Physics</label>
             <label class="switch"><input type="checkbox" id="input-physics"><span class="slider"></span></label>
         </div>
     </div>
@@ -73,30 +107,38 @@
         const ui = document.getElementById('ui-container');
         const hint = document.getElementById('main-hint');
         let width, height, particles = [], time = 0;
+        let mouse = { x: -2000, y: -2000 };
 
         const urlParams = new URLSearchParams(window.location.search);
-        
-        // Load defaults if no parameters exist, otherwise parse URL
         const hasParams = window.location.search.length > 0;
+
         let config = {
-            mood: urlParams.get('m') || (hasParams ? 'fire' : 'comfy'),
-            count: parseInt(urlParams.get('c')) || (hasParams ? 80 : 87),
-            speed: parseFloat(urlParams.get('s')) || (hasParams ? 2.0 : 2.0),
-            size: parseInt(urlParams.get('z')) || (hasParams ? 100 : 250),
-            hue: parseInt(urlParams.get('h')) || (hasParams ? 20 : 345),
-            autohue: urlParams.get('ah') === '1' || (!hasParams ? false : false),
-            glow: urlParams.get('g') !== '0' || (!hasParams ? true : true),
-            physics: urlParams.get('p') !== '0' || (!hasParams ? true : true),
-            uiVisible: urlParams.get('u') === '1' || (!hasParams ? true : false)
+            mood: urlParams.get('m') || 'comfy',
+            count: parseInt(urlParams.get('c')) || 87,
+            speed: parseFloat(urlParams.get('s')) || 2.0,
+            size: parseInt(urlParams.get('z')) || 250,
+            hue: parseInt(urlParams.get('h')) || 345,
+            autohue: urlParams.get('ah') === '1',
+            glow: urlParams.get('g') !== '0',
+            physics: urlParams.get('p') !== '0',
+            uiVisible: urlParams.get('u') !== '0',
+            mousehit: urlParams.get('mh') !== '0',
+            mradius: parseInt(urlParams.get('mr')) || 150,
+            fstyle: urlParams.get('fst') || 'poly',
+            flickerStr: parseFloat(urlParams.get('fs')) || 0.3,
+            flickerSpeed: parseFloat(urlParams.get('fsp')) || 0.1
         };
+
+        window.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; });
 
         function updateURL() {
             const p = new URLSearchParams();
             p.set('m', config.mood); p.set('c', config.count); p.set('s', config.speed);
             p.set('z', config.size); p.set('h', Math.floor(config.hue)); 
-            p.set('ah', config.autohue ? '1' : '0');
-            p.set('g', config.glow ? '1' : '0'); p.set('p', config.physics ? '1' : '0'); 
-            p.set('u', config.uiVisible ? '1' : '0');
+            p.set('ah', config.autohue ? '1' : '0'); p.set('g', config.glow ? '1' : '0'); 
+            p.set('p', config.physics ? '1' : '0'); p.set('u', config.uiVisible ? '1' : '0');
+            p.set('mh', config.mousehit ? '1' : '0'); p.set('mr', config.mradius); 
+            p.set('fst', config.fstyle); p.set('fs', config.flickerStr); p.set('fsp', config.flickerSpeed);
             window.history.replaceState(null, '', window.location.pathname + '?' + p.toString());
         }
 
@@ -112,38 +154,60 @@
                 this.hueOff = (Math.random() - 0.5) * 60;
                 this.drift = 0.5 + Math.random(); 
                 this.baseVx = (Math.random() - 0.5) * 0.5 * this.drift;
-                this.baseVy = config.mood === 'rain' ? (Math.random() + 5) : -(Math.random() * 0.5 + 0.3) * this.drift;
-                this.vx = this.baseVx;
-                this.vy = this.baseVy;
+                this.baseVy = config.mood === 'rain' ? (Math.random() * 5 + 5) : -(Math.random() * 0.5 + 0.3) * this.drift;
+                this.vx = this.baseVx; this.vy = this.baseVy;
             }
             update() {
-                if (config.physics && ['balls', 'comfy', 'fire', 'bloom'].includes(config.mood)) {
+                if (config.physics && ['comfy', 'balls', 'fire', 'bloom'].includes(config.mood)) {
                     for (let other of particles) {
                         if (this === other) continue;
-                        let dx = other.x - this.x, dy = other.y - this.y, dist = Math.sqrt(dx*dx + dy*dy), minDist = (this.r + other.r) * 0.45;
-                        if (dist < minDist && dist > 0) {
-                            let angle = Math.atan2(dy, dx);
-                            let ax = Math.cos(angle) * 0.05;
-                            let ay = Math.sin(angle) * 0.05;
-                            this.vx -= ax; this.vy -= ay;
-                            other.vx += ax; other.vy += ay;
+                        let dx = other.x - this.x, dy = other.y - this.y;
+                        let minDist = (this.r + other.r) * 0.45;
+                        if (Math.abs(dx) < minDist && Math.abs(dy) < minDist) {
+                            let distSq = dx*dx + dy*dy;
+                            if (distSq < minDist * minDist && distSq > 0) {
+                                let dist = Math.sqrt(distSq);
+                                let angle = Math.atan2(dy, dx);
+                                let ax = Math.cos(angle) * 0.05;
+                                let ay = Math.sin(angle) * 0.05;
+                                this.vx -= ax; this.vy -= ay;
+                                other.vx += ax; other.vy += ay;
+                            }
                         }
                     }
                     this.vx *= 0.98; this.vy *= 0.98;
                 }
+
+                if (config.mousehit && ['comfy', 'balls', 'bloom'].includes(config.mood)) {
+                    let dxM = this.x - mouse.x; let dyM = this.y - mouse.y;
+                    let distSqM = dxM*dxM + dyM*dyM;
+                    if (distSqM < config.mradius * config.mradius) {
+                        let distM = Math.sqrt(distSqM);
+                        let force = (config.mradius - distM) / config.mradius;
+                        let angle = Math.atan2(dyM, dxM);
+                        this.vx += Math.cos(angle) * force * 1.2;
+                        this.vy += Math.sin(angle) * force * 1.2;
+                    }
+                }
+
                 this.vx += (this.baseVx - this.vx) * 0.02;
                 this.vy += (this.baseVy - this.vy) * 0.02;
                 this.x += this.vx * config.speed;
                 this.y += this.vy * config.speed;
                 this.rot += this.rotVel * (config.speed * 0.5);
+
                 if (this.y < -500 || this.y > height + 500 || this.x < -500 || this.x > width + 500) this.init();
             }
             draw() {
+                const buffer = this.r * 2.5;
+                if (this.x < -buffer || this.x > width + buffer || this.y < -buffer || this.y > height + buffer) return;
+
                 ctx.save();
-                const flicker = config.glow ? (0.7 + Math.sin(time * 0.1 + this.phase) * 0.3) : 1;
+                const flickerBase = 1 - config.flickerStr;
+                const flicker = config.glow ? (flickerBase + Math.sin(time * config.flickerSpeed + this.phase) * config.flickerStr) : 1;
                 const h = config.hue + this.hueOff;
                 if (config.glow) ctx.globalCompositeOperation = 'lighter';
-
+                
                 if (config.mood === 'bloom') {
                     ctx.translate(this.x, this.y); ctx.rotate(this.rot + time * 0.005);
                     const baseR = this.r * 0.8;
@@ -157,8 +221,7 @@
                         ctx.fillStyle = layer === 0 ? `hsla(${h-20}, 100%, 60%, ${0.5*flicker})` : `hsla(${h+20}, 100%, 80%, ${0.7*flicker})`;
                         let sizeMult = layer === 0 ? 1 : 0.7;
                         for(let i=0; i<5; i++) {
-                            ctx.rotate((Math.PI*2)/5);
-                            ctx.beginPath(); ctx.moveTo(0,0);
+                            ctx.rotate((Math.PI*2)/5); ctx.beginPath(); ctx.moveTo(0,0);
                             ctx.bezierCurveTo(baseR*sizeMult, -baseR*sizeMult, baseR*sizeMult*1.5, -baseR*sizeMult*0.5, baseR*sizeMult*1.5, 0);
                             ctx.bezierCurveTo(baseR*sizeMult*1.5, baseR*sizeMult*0.5, baseR*sizeMult, baseR*sizeMult, 0,0); ctx.fill();
                         }
@@ -166,19 +229,27 @@
                 } else if (config.mood === 'fire') {
                     const s = this.r * (1 + Math.sin(time * 0.05 + this.phase) * 0.3);
                     if (config.glow) {
-                        let g = ctx.createRadialGradient(this.x, this.y-s*0.5, 0, this.x, this.y-s*0.5, s*2);
-                        g.addColorStop(0, `hsla(${h}, 100%, 50%, ${0.4 * flicker})`);
-                        g.addColorStop(1, 'transparent');
-                        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(this.x, this.y-s*0.5, s*2, 0, Math.PI*2); ctx.fill();
+                        let g = ctx.createRadialGradient(this.x, this.y-s*0.5, 0, this.x, this.y-s*0.5, s*2.5);
+                        g.addColorStop(0, `hsla(${h}, 100%, 50%, ${0.3 * flicker})`); g.addColorStop(1, 'transparent');
+                        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(this.x, this.y-s*0.5, s*2.5, 0, Math.PI*2); ctx.fill();
                     }
                     ctx.fillStyle = `hsla(${h}, 100%, 60%, ${flicker})`;
-                    ctx.beginPath();
-                    for(let i=0; i<6; i++) {
-                        let angle = (i / 6) * Math.PI * 2 + this.rot;
-                        let dist = s * (1 + Math.sin(time * 0.05 + i) * 0.5);
-                        ctx.lineTo(this.x + Math.cos(angle) * dist, this.y + Math.sin(angle) * dist - (s*0.5));
+                    if (config.fstyle === 'poly') {
+                        ctx.beginPath();
+                        for(let i=0; i<6; i++) {
+                            let angle = (i / 6) * Math.PI * 2 + this.rot;
+                            let dist = s * (1 + Math.sin(time * 0.05 + i) * 0.5);
+                            ctx.lineTo(this.x + Math.cos(angle) * dist, this.y + Math.sin(angle) * dist - (s*0.5));
+                        }
+                        ctx.closePath(); ctx.fill();
+                    } else {
+                        ctx.beginPath(); ctx.moveTo(this.x, this.y);
+                        const curveHeight = s * 1.8; const curveWidth = s * 0.8;
+                        const driftX = Math.sin(time * 0.1 + this.phase) * (s * 0.3);
+                        ctx.bezierCurveTo(this.x - curveWidth, this.y, this.x - curveWidth + driftX, this.y - curveHeight, this.x, this.y - curveHeight * 1.2);
+                        ctx.bezierCurveTo(this.x + curveWidth + driftX, this.y - curveHeight, this.x + curveWidth, this.y, this.x, this.y);
+                        ctx.fill();
                     }
-                    ctx.closePath(); ctx.fill();
                 } else if (config.mood === 'comfy') {
                     const s = this.r * 0.6;
                     if (config.glow) {
@@ -212,8 +283,9 @@
         function changeMood(m) {
             config.mood = m; 
             const hues = { comfy: 345, fire: 22, balls: 200, rain: 210, bloom: 300 };
-            // If we are initializing without a specific hue in the URL, use mood defaults
-            if (!urlParams.has('h') && hasParams) config.hue = hues[m];
+            if (!urlParams.has('h') && !hasParams) config.hue = hues[m];
+            document.body.classList.toggle('mouse-enabled', ['comfy', 'balls', 'bloom'].includes(m));
+            document.body.classList.toggle('fire-enabled', m === 'fire');
             updateAccent(); initParticles(); updateURL();
             document.querySelectorAll('.mode-selector button').forEach(b => b.classList.toggle('active', b.id === 'btn-'+m));
         }
@@ -225,17 +297,19 @@
         }
 
         function updateUI() {
-            ['count', 'speed', 'size', 'hue'].forEach(id => { 
+            ['count', 'speed', 'size', 'hue', 'mradius', 'flickerStr', 'flickerSpeed'].forEach(id => { 
                 document.getElementById('input-'+id).value = config[id]; 
-                document.getElementById('val-'+id).innerText = id === 'speed' ? config[id].toFixed(1) : Math.floor(config[id]); 
+                document.getElementById('val-'+id).innerText = (id === 'speed' || id === 'flickerStr' || id === 'flickerSpeed') ? config[id].toFixed(2) : Math.floor(config[id]); 
             });
             document.getElementById('input-glow').checked = config.glow; 
             document.getElementById('input-physics').checked = config.physics;
             document.getElementById('input-autohue').checked = config.autohue;
+            document.getElementById('input-mousehit').checked = config.mousehit;
+            document.getElementById('input-fstyle').value = config.fstyle;
             ui.classList.toggle('visible', config.uiVisible); hint.classList.toggle('visible', config.uiVisible);
         }
 
-        ['count', 'speed', 'size', 'hue'].forEach(id => {
+        ['count', 'speed', 'size', 'hue', 'mradius', 'flickerStr', 'flickerSpeed'].forEach(id => {
             document.getElementById('input-'+id).addEventListener('input', (e) => {
                 config[id] = parseFloat(e.target.value); updateUI(); updateURL();
                 if (id === 'hue') { config.autohue = false; document.getElementById('input-autohue').checked = false; updateAccent(); }
@@ -246,14 +320,13 @@
         document.getElementById('input-glow').addEventListener('change', (e) => { config.glow = e.target.checked; updateURL(); });
         document.getElementById('input-physics').addEventListener('change', (e) => { config.physics = e.target.checked; updateURL(); });
         document.getElementById('input-autohue').addEventListener('change', (e) => { config.autohue = e.target.checked; updateURL(); });
+        document.getElementById('input-mousehit').addEventListener('change', (e) => { config.mousehit = e.target.checked; updateURL(); });
+        document.getElementById('input-fstyle').addEventListener('change', (e) => { config.fstyle = e.target.value; updateURL(); });
         document.addEventListener('keydown', (e) => { if (e.key.toLowerCase() === 'm') { config.uiVisible = !config.uiVisible; updateUI(); updateURL(); } });
 
         function animate() {
             time++;
-            if (config.autohue) {
-                config.hue = (config.hue + 0.5) % 360;
-                updateAccent();
-            }
+            if (config.autohue) { config.hue = (config.hue + 0.5) % 360; updateAccent(); }
             ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = "black";
             ctx.globalAlpha = (config.mood === 'fire' || config.mood === 'bloom') ? 0.15 : 0.25; 
             ctx.fillRect(0,0,width,height);
@@ -267,12 +340,7 @@
         }
 
         function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; initParticles(); }
-        
-        window.addEventListener('resize', resize); 
-        resize(); 
-        updateUI(); 
-        changeMood(config.mood); 
-        animate();
+        window.addEventListener('resize', resize); resize(); updateUI(); changeMood(config.mood); animate();
     </script>
 </body>
 </html>
