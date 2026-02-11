@@ -75,16 +75,19 @@
         let width, height, particles = [], time = 0;
 
         const urlParams = new URLSearchParams(window.location.search);
+        
+        // Load defaults if no parameters exist, otherwise parse URL
+        const hasParams = window.location.search.length > 0;
         let config = {
-            mood: urlParams.get('m') || 'fire',
-            count: parseInt(urlParams.get('c')) || 80,
-            speed: parseFloat(urlParams.get('s')) || 2.0,
-            size: parseInt(urlParams.get('z')) || 100,
-            hue: parseInt(urlParams.get('h')) || 20,
-            autohue: urlParams.get('ah') === '1',
-            glow: urlParams.get('g') !== '0',
-            physics: urlParams.get('p') !== '0',
-            uiVisible: urlParams.get('u') === '1'
+            mood: urlParams.get('m') || (hasParams ? 'fire' : 'comfy'),
+            count: parseInt(urlParams.get('c')) || (hasParams ? 80 : 87),
+            speed: parseFloat(urlParams.get('s')) || (hasParams ? 2.0 : 2.0),
+            size: parseInt(urlParams.get('z')) || (hasParams ? 100 : 250),
+            hue: parseInt(urlParams.get('h')) || (hasParams ? 20 : 345),
+            autohue: urlParams.get('ah') === '1' || (!hasParams ? false : false),
+            glow: urlParams.get('g') !== '0' || (!hasParams ? true : true),
+            physics: urlParams.get('p') !== '0' || (!hasParams ? true : true),
+            uiVisible: urlParams.get('u') === '1' || (!hasParams ? true : false)
         };
 
         function updateURL() {
@@ -205,31 +208,41 @@
         }
 
         function initParticles() { particles = []; for (let i = 0; i < config.count; i++) particles.push(new Particle(true)); }
+        
         function changeMood(m) {
-            config.mood = m; const hues = { comfy: 345, fire: 22, balls: 200, rain: 210, bloom: 300 };
-            if (!urlParams.has('h')) config.hue = hues[m];
+            config.mood = m; 
+            const hues = { comfy: 345, fire: 22, balls: 200, rain: 210, bloom: 300 };
+            // If we are initializing without a specific hue in the URL, use mood defaults
+            if (!urlParams.has('h') && hasParams) config.hue = hues[m];
             updateAccent(); initParticles(); updateURL();
             document.querySelectorAll('.mode-selector button').forEach(b => b.classList.toggle('active', b.id === 'btn-'+m));
         }
+
         function updateAccent() { 
             document.documentElement.style.setProperty('--ui-accent', `hsl(${config.hue}, 100%, 50%)`); 
             document.getElementById('val-hue').innerText = Math.floor(config.hue) + "°"; 
             document.getElementById('input-hue').value = config.hue;
         }
+
         function updateUI() {
-            ['count', 'speed', 'size', 'hue'].forEach(id => { document.getElementById('input-'+id).value = config[id]; document.getElementById('val-'+id).innerText = Math.floor(config[id]); });
+            ['count', 'speed', 'size', 'hue'].forEach(id => { 
+                document.getElementById('input-'+id).value = config[id]; 
+                document.getElementById('val-'+id).innerText = id === 'speed' ? config[id].toFixed(1) : Math.floor(config[id]); 
+            });
             document.getElementById('input-glow').checked = config.glow; 
             document.getElementById('input-physics').checked = config.physics;
             document.getElementById('input-autohue').checked = config.autohue;
             ui.classList.toggle('visible', config.uiVisible); hint.classList.toggle('visible', config.uiVisible);
         }
+
         ['count', 'speed', 'size', 'hue'].forEach(id => {
             document.getElementById('input-'+id).addEventListener('input', (e) => {
                 config[id] = parseFloat(e.target.value); updateUI(); updateURL();
                 if (id === 'hue') { config.autohue = false; document.getElementById('input-autohue').checked = false; updateAccent(); }
-                if (id === 'count') initParticles();
+                if (id === 'count' || id === 'size') initParticles();
             });
         });
+
         document.getElementById('input-glow').addEventListener('change', (e) => { config.glow = e.target.checked; updateURL(); });
         document.getElementById('input-physics').addEventListener('change', (e) => { config.physics = e.target.checked; updateURL(); });
         document.getElementById('input-autohue').addEventListener('change', (e) => { config.autohue = e.target.checked; updateURL(); });
@@ -252,8 +265,14 @@
             particles.forEach(p => { p.update(); p.draw(); });
             requestAnimationFrame(animate);
         }
+
         function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; initParticles(); }
-        window.addEventListener('resize', resize); resize(); updateUI(); changeMood(config.mood); animate();
+        
+        window.addEventListener('resize', resize); 
+        resize(); 
+        updateUI(); 
+        changeMood(config.mood); 
+        animate();
     </script>
 </body>
 </html>
