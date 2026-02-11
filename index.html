@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comfy Engine | S-Tier Release</title>
+    <title>Comfy Engine | Wallpaper / Scene tool</title>
     <style>
         :root { --bg: #000; --ui-accent: #ff4400; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
@@ -53,11 +53,11 @@
 
     <div id="ui-container">
         <div class="mode-selector">
-            <button onclick="changeMood('comfy')" id="btn-comfy">Comfy</button>
-            <button onclick="changeMood('balls')" id="btn-balls">Balls</button>
-            <button onclick="changeMood('bloom')" id="btn-bloom">Spirit Bloom</button>
-            <button onclick="changeMood('fire')" id="btn-fire">Fire</button>
-            <button onclick="changeMood('rain')" id="btn-rain">Rain</button>
+            <button onclick="updateVisualMood('hearts')" id="btn-hearts">Hearts</button>
+            <button onclick="updateVisualMood('bubbles')" id="btn-bubbles">Bubbles</button>
+            <button onclick="updateVisualMood('bloom')" id="btn-bloom">Spirit Bloom</button>
+            <button onclick="updateVisualMood('fire')" id="btn-fire">Fire</button>
+            <button onclick="updateVisualMood('rain')" id="btn-rain">Rain</button>
         </div>
         
         <div class="control-row"><label>Intensity: <span id="val-count"></span></label><input type="range" id="input-count" min="1" max="500"></div>
@@ -102,245 +102,245 @@
     </div>
 
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const ui = document.getElementById('ui-container');
-        const hint = document.getElementById('main-hint');
-        let width, height, particles = [], time = 0;
-        let mouse = { x: -2000, y: -2000 };
+        const renderCanvas = document.getElementById('canvas');
+        const drawContext = renderCanvas.getContext('2d');
+        const uiPanel = document.getElementById('ui-container');
+        const uiHint = document.getElementById('main-hint');
+        let viewWidth, viewHeight, elementArray = [], animationTime = 0;
+        let mousePosition = { x: -2000, y: -2000 };
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const hasParams = window.location.search.length > 0;
-
-        let config = {
-            mood: urlParams.get('m') || 'comfy',
-            count: parseInt(urlParams.get('c')) || 87,
-            speed: parseFloat(urlParams.get('s')) || 2.0,
-            size: parseInt(urlParams.get('z')) || 250,
-            hue: parseInt(urlParams.get('h')) || 345,
-            autohue: urlParams.get('ah') === '1',
-            glow: urlParams.get('g') !== '0',
-            physics: urlParams.get('p') !== '0',
-            uiVisible: urlParams.get('u') !== '0',
-            mousehit: urlParams.get('mh') !== '0',
-            mradius: parseInt(urlParams.get('mr')) || 150,
-            fstyle: urlParams.get('fst') || 'poly',
-            flickerStr: parseFloat(urlParams.get('fs')) || 0.3,
-            flickerSpeed: parseFloat(urlParams.get('fsp')) || 0.1
+        const queryParams = new URLSearchParams(window.location.search);
+        
+        // S-Tier Default Landing Page Configuration
+        let engineConfig = {
+            mood: queryParams.get('m') || 'hearts',
+            count: parseInt(queryParams.get('c')) || 57,
+            speed: parseFloat(queryParams.get('s')) || 2.0,
+            size: parseInt(queryParams.get('z')) || 250,
+            hue: parseInt(queryParams.get('h')) || 345,
+            autohue: queryParams.get('ah') === '1',
+            glow: queryParams.get('g') !== '0',
+            physics: queryParams.get('p') !== '0',
+            uiVisible: queryParams.get('u') !== '0', // Default changed to TRUE (per ?u=1)
+            mousehit: queryParams.get('mh') === '1',
+            mradius: parseInt(queryParams.get('mr')) || 10,
+            fstyle: queryParams.get('fst') || 'poly',
+            flickerStr: parseFloat(queryParams.get('fs')) || 0.3,
+            flickerSpeed: parseFloat(queryParams.get('fsp')) || 0.1
         };
 
-        window.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; });
+        window.addEventListener('mousemove', (e) => { mousePosition.x = e.clientX; mousePosition.y = e.clientY; });
 
-        function updateURL() {
-            const p = new URLSearchParams();
-            p.set('m', config.mood); p.set('c', config.count); p.set('s', config.speed);
-            p.set('z', config.size); p.set('h', Math.floor(config.hue)); 
-            p.set('ah', config.autohue ? '1' : '0'); p.set('g', config.glow ? '1' : '0'); 
-            p.set('p', config.physics ? '1' : '0'); p.set('u', config.uiVisible ? '1' : '0');
-            p.set('mh', config.mousehit ? '1' : '0'); p.set('mr', config.mradius); 
-            p.set('fst', config.fstyle); p.set('fs', config.flickerStr); p.set('fsp', config.flickerSpeed);
-            window.history.replaceState(null, '', window.location.pathname + '?' + p.toString());
+        function synchronizeUrlParameters() {
+            const params = new URLSearchParams();
+            params.set('m', engineConfig.mood); params.set('c', engineConfig.count); params.set('s', engineConfig.speed);
+            params.set('z', engineConfig.size); params.set('h', Math.floor(engineConfig.hue)); 
+            params.set('ah', engineConfig.autohue ? '1' : '0'); params.set('g', engineConfig.glow ? '1' : '0'); 
+            params.set('p', engineConfig.physics ? '1' : '0'); params.set('u', engineConfig.uiVisible ? '1' : '0');
+            params.set('mh', engineConfig.mousehit ? '1' : '0'); params.set('mr', engineConfig.mradius); 
+            params.set('fst', engineConfig.fstyle); params.set('fs', engineConfig.flickerStr); params.set('fsp', engineConfig.flickerSpeed);
+            window.history.replaceState(null, '', window.location.pathname + '?' + params.toString());
         }
 
-        class Particle {
-            constructor(isInit = false) { this.init(isInit); }
-            init(randomY = false) {
-                this.x = Math.random() * width;
-                this.y = randomY ? Math.random() * height : (config.mood === 'rain' ? -100 : height + 250);
-                this.r = Math.random() * config.size * 0.5 + 10;
-                this.phase = Math.random() * Math.PI * 2;
-                this.rot = Math.random() * Math.PI * 2;
-                this.rotVel = (Math.random() - 0.5) * 0.05;
-                this.hueOff = (Math.random() - 0.5) * 60;
-                this.drift = 0.5 + Math.random(); 
-                this.baseVx = (Math.random() - 0.5) * 0.5 * this.drift;
-                this.baseVy = config.mood === 'rain' ? (Math.random() * 5 + 5) : -(Math.random() * 0.5 + 0.3) * this.drift;
-                this.vx = this.baseVx; this.vy = this.baseVy;
+        class VisualElement {
+            constructor(isInitialBatch = false) { this.resetState(isInitialBatch); }
+            resetState(randomPlacement = false) {
+                this.posX = Math.random() * viewWidth;
+                this.posY = randomPlacement ? Math.random() * viewHeight : (engineConfig.mood === 'rain' ? -100 : viewHeight + 250);
+                this.radius = Math.random() * engineConfig.size * 0.5 + 10;
+                this.cyclePhase = Math.random() * Math.PI * 2;
+                this.rotation = Math.random() * Math.PI * 2;
+                this.rotationVelocity = (Math.random() - 0.5) * 0.05;
+                this.hueVariation = (Math.random() - 0.5) * 60;
+                this.driftFactor = 0.5 + Math.random(); 
+                this.baseVelX = (Math.random() - 0.5) * 0.5 * this.driftFactor;
+                this.baseVelY = engineConfig.mood === 'rain' ? (Math.random() * 5 + 5) : -(Math.random() * 0.5 + 0.3) * this.driftFactor;
+                this.currentVelX = this.baseVelX; this.currentVelY = this.baseVelY;
             }
-            update() {
-                if (config.physics && ['comfy', 'balls', 'fire', 'bloom'].includes(config.mood)) {
-                    for (let other of particles) {
+            updatePhysics() {
+                if (engineConfig.physics && ['hearts', 'bubbles', 'fire', 'bloom'].includes(engineConfig.mood)) {
+                    for (let other of elementArray) {
                         if (this === other) continue;
-                        let dx = other.x - this.x, dy = other.y - this.y;
-                        let minDist = (this.r + other.r) * 0.45;
+                        let dx = other.posX - this.posX, dy = other.posY - this.posY;
+                        let minDist = (this.radius + other.radius) * 0.45;
                         if (Math.abs(dx) < minDist && Math.abs(dy) < minDist) {
                             let distSq = dx*dx + dy*dy;
                             if (distSq < minDist * minDist && distSq > 0) {
                                 let dist = Math.sqrt(distSq);
                                 let angle = Math.atan2(dy, dx);
-                                let ax = Math.cos(angle) * 0.05;
-                                let ay = Math.sin(angle) * 0.05;
-                                this.vx -= ax; this.vy -= ay;
-                                other.vx += ax; other.vy += ay;
+                                let pushX = Math.cos(angle) * 0.05;
+                                let pushY = Math.sin(angle) * 0.05;
+                                this.currentVelX -= pushX; this.currentVelY -= pushY;
+                                other.currentVelX += pushX; other.currentVelY += pushY;
                             }
                         }
                     }
-                    this.vx *= 0.98; this.vy *= 0.98;
+                    this.currentVelX *= 0.98; this.currentVelY *= 0.98;
                 }
 
-                if (config.mousehit && ['comfy', 'balls', 'bloom'].includes(config.mood)) {
-                    let dxM = this.x - mouse.x; let dyM = this.y - mouse.y;
+                if (engineConfig.mousehit && ['hearts', 'bubbles', 'bloom'].includes(engineConfig.mood)) {
+                    let dxM = this.posX - mousePosition.x; let dyM = this.posY - mousePosition.y;
                     let distSqM = dxM*dxM + dyM*dyM;
-                    if (distSqM < config.mradius * config.mradius) {
+                    if (distSqM < engineConfig.mradius * engineConfig.mradius) {
                         let distM = Math.sqrt(distSqM);
-                        let force = (config.mradius - distM) / config.mradius;
+                        let force = (engineConfig.mradius - distM) / engineConfig.mradius;
                         let angle = Math.atan2(dyM, dxM);
-                        this.vx += Math.cos(angle) * force * 1.2;
-                        this.vy += Math.sin(angle) * force * 1.2;
+                        this.currentVelX += Math.cos(angle) * force * 1.2;
+                        this.currentVelY += Math.sin(angle) * force * 1.2;
                     }
                 }
 
-                this.vx += (this.baseVx - this.vx) * 0.02;
-                this.vy += (this.baseVy - this.vy) * 0.02;
-                this.x += this.vx * config.speed;
-                this.y += this.vy * config.speed;
-                this.rot += this.rotVel * (config.speed * 0.5);
+                this.currentVelX += (this.baseVelX - this.currentVelX) * 0.02;
+                this.currentVelY += (this.baseVelY - this.currentVelY) * 0.02;
+                this.posX += this.currentVelX * engineConfig.speed;
+                this.posY += this.currentVelY * engineConfig.speed;
+                this.rotation += this.rotationVelocity * (engineConfig.speed * 0.5);
 
-                if (this.y < -500 || this.y > height + 500 || this.x < -500 || this.x > width + 500) this.init();
+                if (this.posY < -500 || this.posY > viewHeight + 500 || this.posX < -500 || this.posX > viewWidth + 500) this.resetState();
             }
-            draw() {
-                const buffer = this.r * 2.5;
-                if (this.x < -buffer || this.x > width + buffer || this.y < -buffer || this.y > height + buffer) return;
+            renderToCanvas() {
+                const drawLimit = this.radius * 2.5;
+                if (this.posX < -drawLimit || this.posX > viewWidth + drawLimit || this.posY < -drawLimit || this.posY > viewHeight + drawLimit) return;
 
-                ctx.save();
-                const flickerBase = 1 - config.flickerStr;
-                const flicker = config.glow ? (flickerBase + Math.sin(time * config.flickerSpeed + this.phase) * config.flickerStr) : 1;
-                const h = config.hue + this.hueOff;
-                if (config.glow) ctx.globalCompositeOperation = 'lighter';
+                drawContext.save();
+                const intensityOffset = 1 - engineConfig.flickerStr;
+                const flickerValue = engineConfig.glow ? (intensityOffset + Math.sin(animationTime * engineConfig.flickerSpeed + this.cyclePhase) * engineConfig.flickerStr) : 1;
+                const activeHue = engineConfig.hue + this.hueVariation;
+                if (engineConfig.glow) drawContext.globalCompositeOperation = 'lighter';
                 
-                if (config.mood === 'bloom') {
-                    ctx.translate(this.x, this.y); ctx.rotate(this.rot + time * 0.005);
-                    const baseR = this.r * 0.8;
-                    if (config.glow) {
-                        let g = ctx.createRadialGradient(0,0,0,0,0,baseR*2.5);
-                        g.addColorStop(0, `hsla(${h}, 100%, 50%, ${0.3 * flicker})`);
-                        g.addColorStop(1, 'transparent');
-                        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0,0,baseR*2.5,0,Math.PI*2); ctx.fill();
+                if (engineConfig.mood === 'bloom') {
+                    drawContext.translate(this.posX, this.posY); drawContext.rotate(this.rotation + animationTime * 0.005);
+                    const coreR = this.radius * 0.8;
+                    if (engineConfig.glow) {
+                        let gradient = drawContext.createRadialGradient(0,0,0,0,0,coreR*2.5);
+                        gradient.addColorStop(0, `hsla(${activeHue}, 100%, 50%, ${0.3 * flickerValue})`);
+                        gradient.addColorStop(1, 'transparent');
+                        drawContext.fillStyle = gradient; drawContext.beginPath(); drawContext.arc(0,0,coreR*2.5,0,Math.PI*2); drawContext.fill();
                     }
                     for(let layer=0; layer<2; layer++) {
-                        ctx.fillStyle = layer === 0 ? `hsla(${h-20}, 100%, 60%, ${0.5*flicker})` : `hsla(${h+20}, 100%, 80%, ${0.7*flicker})`;
-                        let sizeMult = layer === 0 ? 1 : 0.7;
+                        drawContext.fillStyle = layer === 0 ? `hsla(${activeHue-20}, 100%, 60%, ${0.5*flickerValue})` : `hsla(${activeHue+20}, 100%, 80%, ${0.7*flickerValue})`;
+                        let scale = layer === 0 ? 1 : 0.7;
                         for(let i=0; i<5; i++) {
-                            ctx.rotate((Math.PI*2)/5); ctx.beginPath(); ctx.moveTo(0,0);
-                            ctx.bezierCurveTo(baseR*sizeMult, -baseR*sizeMult, baseR*sizeMult*1.5, -baseR*sizeMult*0.5, baseR*sizeMult*1.5, 0);
-                            ctx.bezierCurveTo(baseR*sizeMult*1.5, baseR*sizeMult*0.5, baseR*sizeMult, baseR*sizeMult, 0,0); ctx.fill();
+                            drawContext.rotate((Math.PI*2)/5); drawContext.beginPath(); drawContext.moveTo(0,0);
+                            drawContext.bezierCurveTo(coreR*scale, -coreR*scale, coreR*scale*1.5, -coreR*scale*0.5, coreR*scale*1.5, 0);
+                            drawContext.bezierCurveTo(coreR*scale*1.5, coreR*scale*0.5, coreR*scale, coreR*scale, 0,0); drawContext.fill();
                         }
                     }
-                } else if (config.mood === 'fire') {
-                    const s = this.r * (1 + Math.sin(time * 0.05 + this.phase) * 0.3);
-                    if (config.glow) {
-                        let g = ctx.createRadialGradient(this.x, this.y-s*0.5, 0, this.x, this.y-s*0.5, s*2.5);
-                        g.addColorStop(0, `hsla(${h}, 100%, 50%, ${0.3 * flicker})`); g.addColorStop(1, 'transparent');
-                        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(this.x, this.y-s*0.5, s*2.5, 0, Math.PI*2); ctx.fill();
+                } else if (engineConfig.mood === 'fire') {
+                    const dynamicSize = this.radius * (1 + Math.sin(animationTime * 0.05 + this.cyclePhase) * 0.3);
+                    if (engineConfig.glow) {
+                        let gradient = drawContext.createRadialGradient(this.posX, this.posY-dynamicSize*0.5, 0, this.posX, this.posY-dynamicSize*0.5, dynamicSize*2.5);
+                        gradient.addColorStop(0, `hsla(${activeHue}, 100%, 50%, ${0.3 * flickerValue})`); gradient.addColorStop(1, 'transparent');
+                        drawContext.fillStyle = gradient; drawContext.beginPath(); drawContext.arc(this.posX, this.posY-dynamicSize*0.5, dynamicSize*2.5, 0, Math.PI*2); drawContext.fill();
                     }
-                    ctx.fillStyle = `hsla(${h}, 100%, 60%, ${flicker})`;
-                    if (config.fstyle === 'poly') {
-                        ctx.beginPath();
+                    drawContext.fillStyle = `hsla(${activeHue}, 100%, 60%, ${flickerValue})`;
+                    if (engineConfig.fstyle === 'poly') {
+                        drawContext.beginPath();
                         for(let i=0; i<6; i++) {
-                            let angle = (i / 6) * Math.PI * 2 + this.rot;
-                            let dist = s * (1 + Math.sin(time * 0.05 + i) * 0.5);
-                            ctx.lineTo(this.x + Math.cos(angle) * dist, this.y + Math.sin(angle) * dist - (s*0.5));
+                            let angle = (i / 6) * Math.PI * 2 + this.rotation;
+                            let dist = dynamicSize * (1 + Math.sin(animationTime * 0.05 + i) * 0.5);
+                            drawContext.lineTo(this.posX + Math.cos(angle) * dist, this.posY + Math.sin(angle) * dist - (dynamicSize*0.5));
                         }
-                        ctx.closePath(); ctx.fill();
+                        drawContext.closePath(); drawContext.fill();
                     } else {
-                        ctx.beginPath(); ctx.moveTo(this.x, this.y);
-                        const curveHeight = s * 1.8; const curveWidth = s * 0.8;
-                        const driftX = Math.sin(time * 0.1 + this.phase) * (s * 0.3);
-                        ctx.bezierCurveTo(this.x - curveWidth, this.y, this.x - curveWidth + driftX, this.y - curveHeight, this.x, this.y - curveHeight * 1.2);
-                        ctx.bezierCurveTo(this.x + curveWidth + driftX, this.y - curveHeight, this.x + curveWidth, this.y, this.x, this.y);
-                        ctx.fill();
+                        drawContext.beginPath(); drawContext.moveTo(this.posX, this.posY);
+                        const h = dynamicSize * 1.8; const w = dynamicSize * 0.8;
+                        const drift = Math.sin(animationTime * 0.1 + this.cyclePhase) * (dynamicSize * 0.3);
+                        drawContext.bezierCurveTo(this.posX - w, this.posY, this.posX - w + drift, this.posY - h, this.posX, this.posY - h * 1.2);
+                        drawContext.bezierCurveTo(this.posX + w + drift, this.posY - h, this.posX + w, this.posY, this.posX, this.posY);
+                        drawContext.fill();
                     }
-                } else if (config.mood === 'comfy') {
-                    const s = this.r * 0.6;
-                    if (config.glow) {
-                        let g = ctx.createRadialGradient(this.x, this.y+s*0.5, 0, this.x, this.y+s*0.5, s*3);
-                        g.addColorStop(0, `hsla(${h}, 100%, 50%, ${0.3 * flicker})`);
-                        g.addColorStop(1, 'transparent');
-                        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(this.x, this.y+s*0.5, s*3, 0, Math.PI*2); ctx.fill();
+                } else if (engineConfig.mood === 'hearts') {
+                    const s = this.radius * 0.6;
+                    if (engineConfig.glow) {
+                        let gradient = drawContext.createRadialGradient(this.posX, this.posY+s*0.5, 0, this.posX, this.posY+s*0.5, s*3);
+                        gradient.addColorStop(0, `hsla(${activeHue}, 100%, 50%, ${0.3 * flickerValue})`);
+                        gradient.addColorStop(1, 'transparent');
+                        drawContext.fillStyle = gradient; drawContext.beginPath(); drawContext.arc(this.posX, this.posY+s*0.5, s*3, 0, Math.PI*2); drawContext.fill();
                     }
-                    ctx.fillStyle = `hsla(${h}, 100%, 50%, ${flicker})`;
-                    ctx.beginPath(); ctx.moveTo(this.x, this.y);
-                    ctx.bezierCurveTo(this.x-s, this.y-s, this.x-s*1.5, this.y+s/2, this.x, this.y+s*1.3);
-                    ctx.bezierCurveTo(this.x+s*1.5, this.y+s/2, this.x+s, this.y-s, this.x, this.y); ctx.fill();
-                } else if (config.mood === 'balls') {
-                    if (config.glow) {
-                        let g = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.r*1.5);
-                        g.addColorStop(0, `hsla(${h}, 100%, 50%, ${0.4 * flicker})`);
-                        g.addColorStop(1, 'transparent');
-                        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(this.x, this.y, this.r*1.5, 0, Math.PI*2); ctx.fill();
+                    drawContext.fillStyle = `hsla(${activeHue}, 100%, 50%, ${flickerValue})`;
+                    drawContext.beginPath(); drawContext.moveTo(this.posX, this.posY);
+                    drawContext.bezierCurveTo(this.posX-s, this.posY-s, this.posX-s*1.5, this.posY+s/2, this.posX, this.posY+s*1.3);
+                    drawContext.bezierCurveTo(this.posX+s*1.5, this.posY+s/2, this.posX+s, this.posY-s, this.posX, this.posY); drawContext.fill();
+                } else if (engineConfig.mood === 'bubbles') {
+                    if (engineConfig.glow) {
+                        let gradient = drawContext.createRadialGradient(this.posX, this.posY, 0, this.posX, this.posY, this.radius*1.5);
+                        gradient.addColorStop(0, `hsla(${activeHue}, 100%, 50%, ${0.4 * flickerValue})`);
+                        gradient.addColorStop(1, 'transparent');
+                        drawContext.fillStyle = gradient; drawContext.beginPath(); drawContext.arc(this.posX, this.posY, this.radius*1.5, 0, Math.PI*2); drawContext.fill();
                     }
-                    ctx.fillStyle = `hsla(${h}, 100%, 50%, ${flicker})`; ctx.beginPath(); ctx.arc(this.x, this.y, this.r/2, 0, Math.PI*2); ctx.fill();
-                } else if (config.mood === 'rain') {
-                    ctx.strokeStyle = `hsla(${h}, 100%, 75%, ${0.6 * flicker})`; ctx.lineWidth = 2;
-                    ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(this.x, this.y + this.r); ctx.stroke();
+                    drawContext.fillStyle = `hsla(${activeHue}, 100%, 50%, ${flickerValue})`; drawContext.beginPath(); drawContext.arc(this.posX, this.posY, this.radius/2, 0, Math.PI*2); drawContext.fill();
+                } else if (engineConfig.mood === 'rain') {
+                    drawContext.strokeStyle = `hsla(${activeHue}, 100%, 75%, ${0.6 * flickerValue})`; drawContext.lineWidth = 2;
+                    drawContext.beginPath(); drawContext.moveTo(this.posX, this.posY); drawContext.lineTo(this.posX, this.posY + this.radius); drawContext.stroke();
                 }
-                ctx.restore();
+                drawContext.restore();
             }
         }
 
-        function initParticles() { particles = []; for (let i = 0; i < config.count; i++) particles.push(new Particle(true)); }
+        function generateElementPool() { elementArray = []; for (let i = 0; i < engineConfig.count; i++) elementArray.push(new VisualElement(true)); }
         
-        function changeMood(m) {
-            config.mood = m; 
-            const hues = { comfy: 345, fire: 22, balls: 200, rain: 210, bloom: 300 };
-            if (!urlParams.has('h') && !hasParams) config.hue = hues[m];
-            document.body.classList.toggle('mouse-enabled', ['comfy', 'balls', 'bloom'].includes(m));
-            document.body.classList.toggle('fire-enabled', m === 'fire');
-            updateAccent(); initParticles(); updateURL();
-            document.querySelectorAll('.mode-selector button').forEach(b => b.classList.toggle('active', b.id === 'btn-'+m));
+        function updateVisualMood(selectedMood) {
+            engineConfig.mood = selectedMood; 
+            const moodColorTable = { hearts: 345, fire: 22, bubbles: 200, rain: 210, bloom: 300 };
+            if (!queryParams.has('h')) engineConfig.hue = moodColorTable[selectedMood];
+            document.body.classList.toggle('mouse-enabled', ['hearts', 'bubbles', 'bloom'].includes(selectedMood));
+            document.body.classList.toggle('fire-enabled', selectedMood === 'fire');
+            refreshUiColor(); generateElementPool(); synchronizeUrlParameters();
+            document.querySelectorAll('.mode-selector button').forEach(btn => btn.classList.toggle('active', btn.id === 'btn-'+selectedMood));
         }
 
-        function updateAccent() { 
-            document.documentElement.style.setProperty('--ui-accent', `hsl(${config.hue}, 100%, 50%)`); 
-            document.getElementById('val-hue').innerText = Math.floor(config.hue) + "°"; 
-            document.getElementById('input-hue').value = config.hue;
+        function refreshUiColor() { 
+            document.documentElement.style.setProperty('--ui-accent', `hsl(${engineConfig.hue}, 100%, 50%)`); 
+            document.getElementById('val-hue').innerText = Math.floor(engineConfig.hue) + "°"; 
+            document.getElementById('input-hue').value = engineConfig.hue;
         }
 
-        function updateUI() {
+        function syncUiToState() {
             ['count', 'speed', 'size', 'hue', 'mradius', 'flickerStr', 'flickerSpeed'].forEach(id => { 
-                document.getElementById('input-'+id).value = config[id]; 
-                document.getElementById('val-'+id).innerText = (id === 'speed' || id === 'flickerStr' || id === 'flickerSpeed') ? config[id].toFixed(2) : Math.floor(config[id]); 
+                document.getElementById('input-'+id).value = engineConfig[id]; 
+                document.getElementById('val-'+id).innerText = (id === 'speed' || id === 'flickerStr' || id === 'flickerSpeed') ? engineConfig[id].toFixed(2) : Math.floor(engineConfig[id]); 
             });
-            document.getElementById('input-glow').checked = config.glow; 
-            document.getElementById('input-physics').checked = config.physics;
-            document.getElementById('input-autohue').checked = config.autohue;
-            document.getElementById('input-mousehit').checked = config.mousehit;
-            document.getElementById('input-fstyle').value = config.fstyle;
-            ui.classList.toggle('visible', config.uiVisible); hint.classList.toggle('visible', config.uiVisible);
+            document.getElementById('input-glow').checked = engineConfig.glow; 
+            document.getElementById('input-physics').checked = engineConfig.physics;
+            document.getElementById('input-autohue').checked = engineConfig.autohue;
+            document.getElementById('input-mousehit').checked = engineConfig.mousehit;
+            document.getElementById('input-fstyle').value = engineConfig.fstyle;
+            uiPanel.classList.toggle('visible', engineConfig.uiVisible); uiHint.classList.toggle('visible', engineConfig.uiVisible);
         }
 
         ['count', 'speed', 'size', 'hue', 'mradius', 'flickerStr', 'flickerSpeed'].forEach(id => {
             document.getElementById('input-'+id).addEventListener('input', (e) => {
-                config[id] = parseFloat(e.target.value); updateUI(); updateURL();
-                if (id === 'hue') { config.autohue = false; document.getElementById('input-autohue').checked = false; updateAccent(); }
-                if (id === 'count' || id === 'size') initParticles();
+                engineConfig[id] = parseFloat(e.target.value); syncUiToState(); synchronizeUrlParameters();
+                if (id === 'hue') { engineConfig.autohue = false; document.getElementById('input-autohue').checked = false; refreshUiColor(); }
+                if (id === 'count' || id === 'size') generateElementPool();
             });
         });
 
-        document.getElementById('input-glow').addEventListener('change', (e) => { config.glow = e.target.checked; updateURL(); });
-        document.getElementById('input-physics').addEventListener('change', (e) => { config.physics = e.target.checked; updateURL(); });
-        document.getElementById('input-autohue').addEventListener('change', (e) => { config.autohue = e.target.checked; updateURL(); });
-        document.getElementById('input-mousehit').addEventListener('change', (e) => { config.mousehit = e.target.checked; updateURL(); });
-        document.getElementById('input-fstyle').addEventListener('change', (e) => { config.fstyle = e.target.value; updateURL(); });
-        document.addEventListener('keydown', (e) => { if (e.key.toLowerCase() === 'm') { config.uiVisible = !config.uiVisible; updateUI(); updateURL(); } });
+        document.getElementById('input-glow').addEventListener('change', (e) => { engineConfig.glow = e.target.checked; synchronizeUrlParameters(); });
+        document.getElementById('input-physics').addEventListener('change', (e) => { engineConfig.physics = e.target.checked; synchronizeUrlParameters(); });
+        document.getElementById('input-autohue').addEventListener('change', (e) => { engineConfig.autohue = e.target.checked; synchronizeUrlParameters(); });
+        document.getElementById('input-mousehit').addEventListener('change', (e) => { engineConfig.mousehit = e.target.checked; synchronizeUrlParameters(); });
+        document.getElementById('input-fstyle').addEventListener('change', (e) => { engineConfig.fstyle = e.target.value; synchronizeUrlParameters(); });
+        document.addEventListener('keydown', (e) => { if (e.key.toLowerCase() === 'm') { engineConfig.uiVisible = !engineConfig.uiVisible; syncUiToState(); synchronizeUrlParameters(); } });
 
-        function animate() {
-            time++;
-            if (config.autohue) { config.hue = (config.hue + 0.5) % 360; updateAccent(); }
-            ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = "black";
-            ctx.globalAlpha = (config.mood === 'fire' || config.mood === 'bloom') ? 0.15 : 0.25; 
-            ctx.fillRect(0,0,width,height);
-            if (config.mood === 'fire') {
-                let grad = ctx.createLinearGradient(0, height, 0, height - 400);
-                grad.addColorStop(0, `hsla(${config.hue}, 100%, 15%, 0.4)`); grad.addColorStop(1, 'transparent');
-                ctx.fillStyle = grad; ctx.fillRect(0, height-400, width, 400);
+        function startAnimationLoop() {
+            animationTime++;
+            if (engineConfig.autohue) { engineConfig.hue = (engineConfig.hue + 0.5) % 360; refreshUiColor(); }
+            drawContext.globalCompositeOperation = 'source-over'; drawContext.fillStyle = "black";
+            drawContext.globalAlpha = (engineConfig.mood === 'fire' || engineConfig.mood === 'bloom') ? 0.15 : 0.25; 
+            drawContext.fillRect(0,0,viewWidth,viewHeight);
+            if (engineConfig.mood === 'fire') {
+                let backdrop = drawContext.createLinearGradient(0, viewHeight, 0, viewHeight - 400);
+                backdrop.addColorStop(0, `hsla(${engineConfig.hue}, 100%, 15%, 0.4)`); backdrop.addColorStop(1, 'transparent');
+                drawContext.fillStyle = backdrop; drawContext.fillRect(0, viewHeight-400, viewWidth, 400);
             }
-            particles.forEach(p => { p.update(); p.draw(); });
-            requestAnimationFrame(animate);
+            elementArray.forEach(el => { el.updatePhysics(); el.renderToCanvas(); });
+            requestAnimationFrame(startAnimationLoop);
         }
 
-        function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; initParticles(); }
-        window.addEventListener('resize', resize); resize(); updateUI(); changeMood(config.mood); animate();
+        function handleWindowResize() { viewWidth = renderCanvas.width = window.innerWidth; viewHeight = renderCanvas.height = window.innerHeight; generateElementPool(); }
+        window.addEventListener('resize', handleWindowResize); handleWindowResize(); syncUiToState(); updateVisualMood(engineConfig.mood); startAnimationLoop();
     </script>
 </body>
 </html>
