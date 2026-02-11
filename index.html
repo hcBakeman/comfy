@@ -5,22 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Comfy Engine | Wallpaper / Scene tool</title>
     <style>
-        :root { --bg: #000; --ui-accent: #ff4400; }
+        :root { --bg: #000; --ui-accent: #bc13fe; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
         #canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-        #ui-container, #main-hint { opacity: 0; pointer-events: none; transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        
+        /* UI Containers */
+        #ui-container, #main-hint, #help-modal { opacity: 0; pointer-events: none; transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
         #ui-container {
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
-            z-index: 10; background: rgba(10, 10, 10, 0.85); backdrop-filter: blur(25px);
-            padding: 20px 30px; border-radius: 25px; border: 1px solid rgba(255,255,255,0.1);
-            display: flex; flex-direction: column; gap: 12px; min-width: 340px;
+            z-index: 10; background: rgba(10, 10, 10, 0.9); backdrop-filter: blur(30px);
+            padding: 25px; border-radius: 25px; border: 1px solid rgba(255,255,255,0.1);
+            display: flex; flex-direction: column; gap: 12px; min-width: 360px;
+            max-height: 85vh; overflow-y: auto; scrollbar-width: thin;
         }
         #ui-container.visible, #main-hint.visible { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: all; }
         #main-hint.visible { opacity: 0.4; }
         #main-hint { position: absolute; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; z-index: 5; }
+
+        /* Menu Elements */
         .mode-selector { display: flex; justify-content: center; gap: 8px; margin-bottom: 5px; flex-wrap: wrap; }
         button { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 12px; cursor: pointer; font-size: 10px; font-weight: 700; text-transform: uppercase; transition: 0.3s; }
+        button:hover { background: rgba(255,255,255,0.1); color: white; }
         button.active { background: var(--ui-accent); color: white; border-color: var(--ui-accent); box-shadow: 0 0 15px var(--ui-accent); }
+        
         .control-row { display: flex; flex-direction: column; gap: 4px; }
         .control-row label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; }
         
@@ -41,9 +48,26 @@
         .slider:before { position: absolute; content: ""; height: 10px; width: 10px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: var(--ui-accent); }
         
-        .mouse-setting, .fire-setting { display: none; }
+        /* Share & Help Section */
+        .share-box { margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; gap: 8px; }
+        #share-url { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); padding: 8px; border-radius: 8px; color: #888; font-size: 9px; width: 100%; box-sizing: border-box; }
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .btn-obs { background: #333; color: white; border: none; }
+        .btn-help { background: transparent; border: 1px solid rgba(255,255,255,0.2); }
+
+        /* Modal */
+        #help-modal { 
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -40%); 
+            background: rgba(15,15,15,0.95); backdrop-filter: blur(40px);
+            padding: 40px; border-radius: 30px; border: 1px solid var(--ui-accent);
+            z-index: 100; max-width: 500px; text-align: center;
+        }
+        #help-modal.visible { opacity: 1; transform: translate(-50%, -50%); pointer-events: all; }
+        #help-modal h2 { margin-top: 0; color: var(--ui-accent); text-transform: uppercase; letter-spacing: 2px; }
+        #help-modal p { font-size: 13px; line-height: 1.6; color: #ccc; text-align: left; }
+        
+        .mouse-setting { display: none; }
         .mouse-enabled .mouse-setting { display: flex; }
-        .fire-enabled .fire-setting { display: flex; }
     </style>
 </head>
 <body class="mouse-enabled">
@@ -67,24 +91,20 @@
         
         <div class="control-row"><label>Flicker Power: <span id="val-flickerStr"></span></label><input type="range" id="input-flickerStr" min="0" max="1" step="0.05"></div>
         <div class="control-row"><label>Flicker Time: <span id="val-flickerSpeed"></span></label><input type="range" id="input-flickerSpeed" min="0.01" max="0.5" step="0.01"></div>
+        
+        <div class="control-row"><label>Hitbox Scale: <span id="val-hitbox"></span></label><input type="range" id="input-hitbox" min="0.1" max="4.0" step="0.1"></div>
 
         <div class="control-row mouse-setting">
-            <label>Avoid Radius: <span id="val-mradius"></span></label>
-            <input type="range" id="input-mradius" min="10" max="500" step="10">
-        </div>
-
-        <div class="control-row fire-setting">
-            <label>Fire Style</label>
-            <select id="input-fstyle">
-                <option value="poly">Polygonal</option>
-                <option value="fluid">Fluid Wisps</option>
+            <label>Interact Mode</label>
+            <select id="input-mmode">
+                <option value="avoid">Avoid Mouse</option>
+                <option value="follow">Follow Mouse</option>
+                <option value="off">Off</option>
             </select>
         </div>
 
-        <div class="switch-container mouse-setting" style="border-top: none; padding-top: 0; margin-top: -5px;">
-            <label style="font-size: 9px; text-transform: uppercase; opacity: 0.8; color: #00ffcc;">Mouse Interact</label>
-            <label class="switch"><input type="checkbox" id="input-mousehit"><span class="slider"></span></label>
-        </div>
+        <div class="control-row mouse-setting"><label>Interact Radius: <span id="val-mradius"></span></label><input type="range" id="input-mradius" min="10" max="1000" step="10"></div>
+        <div class="control-row mouse-setting"><label>Interact Strength: <span id="val-mstrength"></span></label><input type="range" id="input-mstrength" min="0.1" max="15" step="0.1"></div>
 
         <div class="switch-container">
             <label style="font-size: 9px; text-transform: uppercase; opacity: 0.8;">Auto Hue</label>
@@ -99,6 +119,26 @@
             <label style="font-size: 9px; text-transform: uppercase; opacity: 0.8;">Smooth Physics</label>
             <label class="switch"><input type="checkbox" id="input-physics"><span class="slider"></span></label>
         </div>
+
+        <div class="share-box">
+            <label style="font-size: 9px; text-transform: uppercase; opacity: 0.6;">Current Config URL</label>
+            <input type="text" id="share-url" readonly onclick="this.select()">
+            <div class="btn-group">
+                <button class="btn-obs" onclick="copyForOBS()">Copy URL</button>
+                <button class="btn-help" onclick="toggleHelp(true)">Guide / Help</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="help-modal">
+        <h2>Setup Guide</h2>
+        <p>
+            <strong>OBS Browser Source:</strong> Click 'Copy URL' and paste it as a Browser Source. The UI will stay hidden automatically.<br><br>
+            <strong>Lively / Wallpaper Engine:</strong> Use the URL in your wallpaper software. Adjust 'Interact Mode' to react to your mouse movements on your desktop.<br><br>
+            <strong>Website Background:</strong> This is a lightweight HTML5 engine. You can use it as a background for any site.<br><br>
+            <strong>Shortcut:</strong> Press [M] to toggle the menu.
+        </p>
+        <button onclick="toggleHelp(false)" style="margin-top: 20px; width: 100%;">Close Guide</button>
     </div>
 
     <script>
@@ -111,47 +151,63 @@
 
         const queryParams = new URLSearchParams(window.location.search);
         
-        // S-Tier Default Landing Page Configuration
+        // UPDATED DEFAULTS TO MATCH YOUR REQUEST
         let engineConfig = {
             mood: queryParams.get('m') || 'hearts',
-            count: parseInt(queryParams.get('c')) || 57,
-            speed: parseFloat(queryParams.get('s')) || 2.0,
+            count: parseInt(queryParams.get('c')) || 491,
+            speed: parseFloat(queryParams.get('s')) || 1.3,
             size: parseInt(queryParams.get('z')) || 250,
-            hue: parseInt(queryParams.get('h')) || 345,
+            hue: parseInt(queryParams.get('h')) || 335,
             autohue: queryParams.get('ah') === '1',
             glow: queryParams.get('g') !== '0',
             physics: queryParams.get('p') !== '0',
-            uiVisible: queryParams.get('u') !== '0', // Default changed to TRUE (per ?u=1)
-            mousehit: queryParams.get('mh') === '1',
-            mradius: parseInt(queryParams.get('mr')) || 10,
-            fstyle: queryParams.get('fst') || 'poly',
+            uiVisible: queryParams.get('u') !== '0',
+            mmode: queryParams.get('mm') || 'off',
+            mradius: parseInt(queryParams.get('mr')) || 250,
+            mstrength: parseFloat(queryParams.get('mst')) || 1.8,
             flickerStr: parseFloat(queryParams.get('fs')) || 0.3,
-            flickerSpeed: parseFloat(queryParams.get('fsp')) || 0.1
+            flickerSpeed: parseFloat(queryParams.get('fsp')) || 0.1,
+            hitbox: parseFloat(queryParams.get('hb')) || 1.1
         };
 
         window.addEventListener('mousemove', (e) => { mousePosition.x = e.clientX; mousePosition.y = e.clientY; });
 
         function synchronizeUrlParameters() {
             const params = new URLSearchParams();
-            params.set('m', engineConfig.mood); params.set('c', engineConfig.count); params.set('s', engineConfig.speed);
-            params.set('z', engineConfig.size); params.set('h', Math.floor(engineConfig.hue)); 
-            params.set('ah', engineConfig.autohue ? '1' : '0'); params.set('g', engineConfig.glow ? '1' : '0'); 
-            params.set('p', engineConfig.physics ? '1' : '0'); params.set('u', engineConfig.uiVisible ? '1' : '0');
-            params.set('mh', engineConfig.mousehit ? '1' : '0'); params.set('mr', engineConfig.mradius); 
-            params.set('fst', engineConfig.fstyle); params.set('fs', engineConfig.flickerStr); params.set('fsp', engineConfig.flickerSpeed);
-            window.history.replaceState(null, '', window.location.pathname + '?' + params.toString());
+            const shortKeys = {mood:'m', count:'c', speed:'s', size:'z', hue:'h', autohue:'ah', glow:'g', physics:'p', uiVisible:'u', mmode:'mm', mradius:'mr', mstrength:'mst', flickerStr:'fs', flickerSpeed:'fsp', hitbox:'hb'};
+            Object.keys(engineConfig).forEach(key => {
+                let val = engineConfig[key];
+                if (typeof val === 'boolean') val = val ? '1' : '0';
+                params.set(shortKeys[key] || key, val);
+            });
+            const fullUrl = window.location.origin + window.location.pathname + '?' + params.toString();
+            window.history.replaceState(null, '', fullUrl);
+            document.getElementById('share-url').value = fullUrl;
+            return params;
         }
+
+        function copyForOBS() {
+            const params = synchronizeUrlParameters();
+            params.set('u', '0'); // Force UI off for the copied link
+            const obsUrl = window.location.origin + window.location.pathname + '?' + params.toString();
+            navigator.clipboard.writeText(obsUrl);
+            const btn = document.querySelector('.btn-obs');
+            btn.innerText = "Copied!";
+            setTimeout(() => btn.innerText = "Copy URL", 2000);
+        }
+
+        function toggleHelp(show) { document.getElementById('help-modal').classList.toggle('visible', show); }
 
         class VisualElement {
             constructor(isInitialBatch = false) { this.resetState(isInitialBatch); }
             resetState(randomPlacement = false) {
                 this.posX = Math.random() * viewWidth;
                 this.posY = randomPlacement ? Math.random() * viewHeight : (engineConfig.mood === 'rain' ? -100 : viewHeight + 250);
-                this.radius = Math.random() * engineConfig.size * 0.5 + 10;
+                this.radius = Math.random() * engineConfig.size * 0.4 + 10;
                 this.cyclePhase = Math.random() * Math.PI * 2;
                 this.rotation = Math.random() * Math.PI * 2;
                 this.rotationVelocity = (Math.random() - 0.5) * 0.05;
-                this.hueVariation = (Math.random() - 0.5) * 60;
+                this.hueVariation = (Math.random() - 0.5) * 40;
                 this.driftFactor = 0.5 + Math.random(); 
                 this.baseVelX = (Math.random() - 0.5) * 0.5 * this.driftFactor;
                 this.baseVelY = engineConfig.mood === 'rain' ? (Math.random() * 5 + 5) : -(Math.random() * 0.5 + 0.3) * this.driftFactor;
@@ -162,11 +218,10 @@
                     for (let other of elementArray) {
                         if (this === other) continue;
                         let dx = other.posX - this.posX, dy = other.posY - this.posY;
-                        let minDist = (this.radius + other.radius) * 0.45;
+                        let minDist = (this.radius + other.radius) * 0.45 * engineConfig.hitbox;
                         if (Math.abs(dx) < minDist && Math.abs(dy) < minDist) {
                             let distSq = dx*dx + dy*dy;
                             if (distSq < minDist * minDist && distSq > 0) {
-                                let dist = Math.sqrt(distSq);
                                 let angle = Math.atan2(dy, dx);
                                 let pushX = Math.cos(angle) * 0.05;
                                 let pushY = Math.sin(angle) * 0.05;
@@ -175,50 +230,41 @@
                             }
                         }
                     }
-                    this.currentVelX *= 0.98; this.currentVelY *= 0.98;
                 }
 
-                if (engineConfig.mousehit && ['hearts', 'bubbles', 'bloom'].includes(engineConfig.mood)) {
-                    let dxM = this.posX - mousePosition.x; let dyM = this.posY - mousePosition.y;
-                    let distSqM = dxM*dxM + dyM*dyM;
-                    if (distSqM < engineConfig.mradius * engineConfig.mradius) {
-                        let distM = Math.sqrt(distSqM);
+                if (engineConfig.mmode !== 'off' && ['hearts', 'bubbles', 'bloom'].includes(engineConfig.mood)) {
+                    let dxM = mousePosition.x - this.posX, dyM = mousePosition.y - this.posY;
+                    let distM = Math.sqrt(dxM*dxM + dyM*dyM);
+                    if (distM < engineConfig.mradius) {
                         let force = (engineConfig.mradius - distM) / engineConfig.mradius;
                         let angle = Math.atan2(dyM, dxM);
-                        this.currentVelX += Math.cos(angle) * force * 1.2;
-                        this.currentVelY += Math.sin(angle) * force * 1.2;
+                        let moveX = (engineConfig.mmode === 'avoid' ? -Math.cos(angle) : Math.cos(angle)) * force * engineConfig.mstrength;
+                        let moveY = (engineConfig.mmode === 'avoid' ? -Math.sin(angle) : Math.sin(angle)) * force * engineConfig.mstrength;
+                        this.currentVelX += moveX * 0.1; this.currentVelY += moveY * 0.1;
                     }
                 }
 
-                this.currentVelX += (this.baseVelX - this.currentVelX) * 0.02;
-                this.currentVelY += (this.baseVelY - this.currentVelY) * 0.02;
+                this.currentVelX += (this.baseVelX - this.currentVelX) * 0.03;
+                this.currentVelY += (this.baseVelY - this.currentVelY) * 0.03;
                 this.posX += this.currentVelX * engineConfig.speed;
                 this.posY += this.currentVelY * engineConfig.speed;
                 this.rotation += this.rotationVelocity * (engineConfig.speed * 0.5);
-
                 if (this.posY < -500 || this.posY > viewHeight + 500 || this.posX < -500 || this.posX > viewWidth + 500) this.resetState();
             }
+
             renderToCanvas() {
                 const drawLimit = this.radius * 2.5;
                 if (this.posX < -drawLimit || this.posX > viewWidth + drawLimit || this.posY < -drawLimit || this.posY > viewHeight + drawLimit) return;
-
                 drawContext.save();
-                const intensityOffset = 1 - engineConfig.flickerStr;
-                const flickerValue = engineConfig.glow ? (intensityOffset + Math.sin(animationTime * engineConfig.flickerSpeed + this.cyclePhase) * engineConfig.flickerStr) : 1;
+                const flickerValue = engineConfig.glow ? ( (1-engineConfig.flickerStr) + Math.sin(animationTime * engineConfig.flickerSpeed + this.cyclePhase) * engineConfig.flickerStr) : 1;
                 const activeHue = engineConfig.hue + this.hueVariation;
                 if (engineConfig.glow) drawContext.globalCompositeOperation = 'lighter';
                 
                 if (engineConfig.mood === 'bloom') {
                     drawContext.translate(this.posX, this.posY); drawContext.rotate(this.rotation + animationTime * 0.005);
                     const coreR = this.radius * 0.8;
-                    if (engineConfig.glow) {
-                        let gradient = drawContext.createRadialGradient(0,0,0,0,0,coreR*2.5);
-                        gradient.addColorStop(0, `hsla(${activeHue}, 100%, 50%, ${0.3 * flickerValue})`);
-                        gradient.addColorStop(1, 'transparent');
-                        drawContext.fillStyle = gradient; drawContext.beginPath(); drawContext.arc(0,0,coreR*2.5,0,Math.PI*2); drawContext.fill();
-                    }
                     for(let layer=0; layer<2; layer++) {
-                        drawContext.fillStyle = layer === 0 ? `hsla(${activeHue-20}, 100%, 60%, ${0.5*flickerValue})` : `hsla(${activeHue+20}, 100%, 80%, ${0.7*flickerValue})`;
+                        drawContext.fillStyle = layer === 0 ? `hsla(${activeHue}, 100%, 60%, ${0.4*flickerValue})` : `hsla(${activeHue+20}, 100%, 80%, ${0.6*flickerValue})`;
                         let scale = layer === 0 ? 1 : 0.7;
                         for(let i=0; i<5; i++) {
                             drawContext.rotate((Math.PI*2)/5); drawContext.beginPath(); drawContext.moveTo(0,0);
@@ -228,47 +274,21 @@
                     }
                 } else if (engineConfig.mood === 'fire') {
                     const dynamicSize = this.radius * (1 + Math.sin(animationTime * 0.05 + this.cyclePhase) * 0.3);
-                    if (engineConfig.glow) {
-                        let gradient = drawContext.createRadialGradient(this.posX, this.posY-dynamicSize*0.5, 0, this.posX, this.posY-dynamicSize*0.5, dynamicSize*2.5);
-                        gradient.addColorStop(0, `hsla(${activeHue}, 100%, 50%, ${0.3 * flickerValue})`); gradient.addColorStop(1, 'transparent');
-                        drawContext.fillStyle = gradient; drawContext.beginPath(); drawContext.arc(this.posX, this.posY-dynamicSize*0.5, dynamicSize*2.5, 0, Math.PI*2); drawContext.fill();
-                    }
                     drawContext.fillStyle = `hsla(${activeHue}, 100%, 60%, ${flickerValue})`;
-                    if (engineConfig.fstyle === 'poly') {
-                        drawContext.beginPath();
-                        for(let i=0; i<6; i++) {
-                            let angle = (i / 6) * Math.PI * 2 + this.rotation;
-                            let dist = dynamicSize * (1 + Math.sin(animationTime * 0.05 + i) * 0.5);
-                            drawContext.lineTo(this.posX + Math.cos(angle) * dist, this.posY + Math.sin(angle) * dist - (dynamicSize*0.5));
-                        }
-                        drawContext.closePath(); drawContext.fill();
-                    } else {
-                        drawContext.beginPath(); drawContext.moveTo(this.posX, this.posY);
-                        const h = dynamicSize * 1.8; const w = dynamicSize * 0.8;
-                        const drift = Math.sin(animationTime * 0.1 + this.cyclePhase) * (dynamicSize * 0.3);
-                        drawContext.bezierCurveTo(this.posX - w, this.posY, this.posX - w + drift, this.posY - h, this.posX, this.posY - h * 1.2);
-                        drawContext.bezierCurveTo(this.posX + w + drift, this.posY - h, this.posX + w, this.posY, this.posX, this.posY);
-                        drawContext.fill();
+                    drawContext.beginPath();
+                    for(let i=0; i<6; i++) {
+                        let angle = (i / 6) * Math.PI * 2 + this.rotation;
+                        let dist = dynamicSize * (1 + Math.sin(animationTime * 0.05 + i) * 0.5);
+                        drawContext.lineTo(this.posX + Math.cos(angle) * dist, this.posY + Math.sin(angle) * dist - (dynamicSize*0.5));
                     }
+                    drawContext.closePath(); drawContext.fill();
                 } else if (engineConfig.mood === 'hearts') {
                     const s = this.radius * 0.6;
-                    if (engineConfig.glow) {
-                        let gradient = drawContext.createRadialGradient(this.posX, this.posY+s*0.5, 0, this.posX, this.posY+s*0.5, s*3);
-                        gradient.addColorStop(0, `hsla(${activeHue}, 100%, 50%, ${0.3 * flickerValue})`);
-                        gradient.addColorStop(1, 'transparent');
-                        drawContext.fillStyle = gradient; drawContext.beginPath(); drawContext.arc(this.posX, this.posY+s*0.5, s*3, 0, Math.PI*2); drawContext.fill();
-                    }
                     drawContext.fillStyle = `hsla(${activeHue}, 100%, 50%, ${flickerValue})`;
                     drawContext.beginPath(); drawContext.moveTo(this.posX, this.posY);
                     drawContext.bezierCurveTo(this.posX-s, this.posY-s, this.posX-s*1.5, this.posY+s/2, this.posX, this.posY+s*1.3);
                     drawContext.bezierCurveTo(this.posX+s*1.5, this.posY+s/2, this.posX+s, this.posY-s, this.posX, this.posY); drawContext.fill();
                 } else if (engineConfig.mood === 'bubbles') {
-                    if (engineConfig.glow) {
-                        let gradient = drawContext.createRadialGradient(this.posX, this.posY, 0, this.posX, this.posY, this.radius*1.5);
-                        gradient.addColorStop(0, `hsla(${activeHue}, 100%, 50%, ${0.4 * flickerValue})`);
-                        gradient.addColorStop(1, 'transparent');
-                        drawContext.fillStyle = gradient; drawContext.beginPath(); drawContext.arc(this.posX, this.posY, this.radius*1.5, 0, Math.PI*2); drawContext.fill();
-                    }
                     drawContext.fillStyle = `hsla(${activeHue}, 100%, 50%, ${flickerValue})`; drawContext.beginPath(); drawContext.arc(this.posX, this.posY, this.radius/2, 0, Math.PI*2); drawContext.fill();
                 } else if (engineConfig.mood === 'rain') {
                     drawContext.strokeStyle = `hsla(${activeHue}, 100%, 75%, ${0.6 * flickerValue})`; drawContext.lineWidth = 2;
@@ -282,10 +302,7 @@
         
         function updateVisualMood(selectedMood) {
             engineConfig.mood = selectedMood; 
-            const moodColorTable = { hearts: 345, fire: 22, bubbles: 200, rain: 210, bloom: 300 };
-            if (!queryParams.has('h')) engineConfig.hue = moodColorTable[selectedMood];
             document.body.classList.toggle('mouse-enabled', ['hearts', 'bubbles', 'bloom'].includes(selectedMood));
-            document.body.classList.toggle('fire-enabled', selectedMood === 'fire');
             refreshUiColor(); generateElementPool(); synchronizeUrlParameters();
             document.querySelectorAll('.mode-selector button').forEach(btn => btn.classList.toggle('active', btn.id === 'btn-'+selectedMood));
         }
@@ -297,21 +314,21 @@
         }
 
         function syncUiToState() {
-            ['count', 'speed', 'size', 'hue', 'mradius', 'flickerStr', 'flickerSpeed'].forEach(id => { 
+            ['count', 'speed', 'size', 'hue', 'mradius', 'mstrength', 'flickerStr', 'flickerSpeed', 'hitbox'].forEach(id => { 
                 document.getElementById('input-'+id).value = engineConfig[id]; 
-                document.getElementById('val-'+id).innerText = (id === 'speed' || id === 'flickerStr' || id === 'flickerSpeed') ? engineConfig[id].toFixed(2) : Math.floor(engineConfig[id]); 
+                document.getElementById('val-'+id).innerText = (['speed', 'mstrength', 'flickerStr', 'flickerSpeed', 'hitbox'].includes(id)) ? parseFloat(engineConfig[id]).toFixed(1) : Math.floor(engineConfig[id]); 
             });
             document.getElementById('input-glow').checked = engineConfig.glow; 
             document.getElementById('input-physics').checked = engineConfig.physics;
             document.getElementById('input-autohue').checked = engineConfig.autohue;
-            document.getElementById('input-mousehit').checked = engineConfig.mousehit;
-            document.getElementById('input-fstyle').value = engineConfig.fstyle;
+            document.getElementById('input-mmode').value = engineConfig.mmode;
             uiPanel.classList.toggle('visible', engineConfig.uiVisible); uiHint.classList.toggle('visible', engineConfig.uiVisible);
+            synchronizeUrlParameters();
         }
 
-        ['count', 'speed', 'size', 'hue', 'mradius', 'flickerStr', 'flickerSpeed'].forEach(id => {
+        ['count', 'speed', 'size', 'hue', 'mradius', 'mstrength', 'flickerStr', 'flickerSpeed', 'hitbox'].forEach(id => {
             document.getElementById('input-'+id).addEventListener('input', (e) => {
-                engineConfig[id] = parseFloat(e.target.value); syncUiToState(); synchronizeUrlParameters();
+                engineConfig[id] = parseFloat(e.target.value); syncUiToState();
                 if (id === 'hue') { engineConfig.autohue = false; document.getElementById('input-autohue').checked = false; refreshUiColor(); }
                 if (id === 'count' || id === 'size') generateElementPool();
             });
@@ -320,9 +337,8 @@
         document.getElementById('input-glow').addEventListener('change', (e) => { engineConfig.glow = e.target.checked; synchronizeUrlParameters(); });
         document.getElementById('input-physics').addEventListener('change', (e) => { engineConfig.physics = e.target.checked; synchronizeUrlParameters(); });
         document.getElementById('input-autohue').addEventListener('change', (e) => { engineConfig.autohue = e.target.checked; synchronizeUrlParameters(); });
-        document.getElementById('input-mousehit').addEventListener('change', (e) => { engineConfig.mousehit = e.target.checked; synchronizeUrlParameters(); });
-        document.getElementById('input-fstyle').addEventListener('change', (e) => { engineConfig.fstyle = e.target.value; synchronizeUrlParameters(); });
-        document.addEventListener('keydown', (e) => { if (e.key.toLowerCase() === 'm') { engineConfig.uiVisible = !engineConfig.uiVisible; syncUiToState(); synchronizeUrlParameters(); } });
+        document.getElementById('input-mmode').addEventListener('change', (e) => { engineConfig.mmode = e.target.value; synchronizeUrlParameters(); });
+        document.addEventListener('keydown', (e) => { if (e.key.toLowerCase() === 'm') { engineConfig.uiVisible = !engineConfig.uiVisible; syncUiToState(); } });
 
         function startAnimationLoop() {
             animationTime++;
@@ -330,11 +346,6 @@
             drawContext.globalCompositeOperation = 'source-over'; drawContext.fillStyle = "black";
             drawContext.globalAlpha = (engineConfig.mood === 'fire' || engineConfig.mood === 'bloom') ? 0.15 : 0.25; 
             drawContext.fillRect(0,0,viewWidth,viewHeight);
-            if (engineConfig.mood === 'fire') {
-                let backdrop = drawContext.createLinearGradient(0, viewHeight, 0, viewHeight - 400);
-                backdrop.addColorStop(0, `hsla(${engineConfig.hue}, 100%, 15%, 0.4)`); backdrop.addColorStop(1, 'transparent');
-                drawContext.fillStyle = backdrop; drawContext.fillRect(0, viewHeight-400, viewWidth, 400);
-            }
             elementArray.forEach(el => { el.updatePhysics(); el.renderToCanvas(); });
             requestAnimationFrame(startAnimationLoop);
         }
