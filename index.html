@@ -142,9 +142,9 @@
 
         const shortKeys = {mood:'m', count:'c', speed:'s', size:'z', hue:'h', autohue:'ah', glow:'g', glowIntensity:'gi', glowRadius:'gr', physics:'p', uiVisible:'u', mmode:'mm', mradius:'mr', mstrength:'mst', flickerStr:'fs', flickerSpeed:'fsp', hitbox:'hb', bgstyle:'bgs'};
 
-        // Updated default landing settings
+        // Default settings updated as requested
         let engineConfig = {
-            mood: 'hearts', count: 298, speed: 0.2, size: 88, hue: 335, autohue: false, glow: true, glowIntensity: 30, glowRadius: 3.5, physics: true, uiVisible: true, mmode: 'off', mradius: 250, mstrength: 1.8, flickerStr: 0.3, flickerSpeed: 0.1, hitbox: 1.0, bgstyle: 'black'
+            mood: 'hearts', count: 491, speed: 0.3, size: 250, hue: 335, autohue: false, glow: true, glowIntensity: 92, glowRadius: 1.1, physics: true, uiVisible: true, mmode: 'off', mradius: 250, mstrength: 1.8, flickerStr: 0.3, flickerSpeed: 0.1, hitbox: 1.0, bgstyle: 'black'
         };
 
         function loadFromUrl() {
@@ -187,25 +187,21 @@
         class VisualElement {
             constructor(isInitialBatch = false) { this.resetState(isInitialBatch); }
             resetState(randomPlacement = false) {
-                this.radius = Math.random() * engineConfig.size * 0.4 + 10;
-                
                 if (engineConfig.mood === 'space') {
                     this.posX = (Math.random() - 0.5) * viewWidth * 4;
                     this.posY = (Math.random() - 0.5) * viewHeight * 4;
                     this.posZ = randomPlacement ? Math.random() * 2000 : 2000;
                     this.oldZ = this.posZ;
                     this.hueVariation = (Math.random() - 0.5) * 120; 
+                    this.intrinsicScale = 0.2 + Math.random() * 0.8; 
                 } else {
                     this.posX = Math.random() * viewWidth;
-                    if (randomPlacement) {
-                        this.posY = (Math.random() * (viewHeight + 400) - 200);
-                    } else {
-                        this.posY = engineConfig.mood === 'rain' ? -(this.radius + 100) : viewHeight + (this.radius + 100);
-                    }
+                    this.posY = randomPlacement ? (Math.random() * (viewHeight + 400) - 200) : (engineConfig.mood === 'rain' ? -100 : viewHeight + 250);
                     this.hueVariation = (Math.random() - 0.5) * 40;
                 }
                 this.originX = this.posX;
                 this.originY = this.posY;
+                this.radius = Math.random() * engineConfig.size * 0.4 + 10;
                 this.cyclePhase = Math.random() * Math.PI * 2;
                 this.pulseSpeedScale = 0.8 + Math.random() * 0.4;
                 this.rotation = Math.random() * Math.PI * 2;
@@ -231,13 +227,9 @@
                 let inMouseRange = false;
 
                 if (canInteract && engineConfig.mmode !== 'off') {
-                    let dxM = mousePosition.x - this.posX, dyM = mousePosition.y - this.posY;
-                    let distSqM = dxM*dxM + dyM*dyM;
-                    let radSq = engineConfig.mradius * engineConfig.mradius;
-
-                    if (distSqM < radSq) {
+                    let dxM = mousePosition.x - this.posX, dyM = mousePosition.y - this.posY, distM = Math.sqrt(dxM*dxM + dyM*dyM);
+                    if (distM < engineConfig.mradius) {
                         inMouseRange = true;
-                        let distM = Math.sqrt(distSqM);
                         let force = (engineConfig.mradius - distM) / engineConfig.mradius, angle = Math.atan2(dyM, dxM);
                         let moveX = (engineConfig.mmode === 'avoid' ? -Math.cos(angle) : Math.cos(angle)) * force * engineConfig.mstrength;
                         let moveY = (engineConfig.mmode === 'avoid' ? -Math.sin(angle) : Math.sin(angle)) * force * engineConfig.mstrength;
@@ -276,18 +268,15 @@
                 }
 
                 this.rotation += this.rotationVelocity * (engineConfig.speed * 0.5 + 0.1);
-                
-                const margin = this.radius + 200;
-                if (engineConfig.speed > 0 && (this.posY < -margin || this.posY > viewHeight + margin || this.posX < -margin || this.posX > viewWidth + margin)) {
-                    this.resetState(false);
-                }
+                if (engineConfig.speed > 0 && (this.posY < -600 || this.posY > viewHeight + 600 || this.posX < -600 || this.posX > viewWidth + 600)) this.resetState();
             }
 
             renderGlow(x, y, radius, hue, alpha) {
                 if (!engineConfig.glow || engineConfig.glowIntensity === 0) return;
                 const power = engineConfig.glowIntensity / 100;
                 const glowSize = radius * engineConfig.glowRadius;
-                let gy = (engineConfig.mood === 'hearts') ? y + (radius * 0.4) : y;
+                let gy = y;
+                if (engineConfig.mood === 'hearts') gy = y + (radius * 0.4);
 
                 const grad = drawContext.createRadialGradient(x, gy, 0, x, gy, glowSize);
                 grad.addColorStop(0, `hsla(${hue}, 100%, 60%, ${alpha * power})`);
@@ -301,45 +290,34 @@
                 const currentPulseSpeed = engineConfig.flickerSpeed * this.pulseSpeedScale;
                 const pulseVal = (1 - engineConfig.flickerStr) + Math.sin(animationTime * currentPulseSpeed + this.cyclePhase) * engineConfig.flickerStr;
                 const activeHue = engineConfig.hue + this.hueVariation;
-                
-                const fadeMargin = 150;
-                let edgeAlpha = 1.0;
-                if (this.posY < fadeMargin) edgeAlpha = Math.max(0, this.posY / fadeMargin);
-                else if (this.posY > viewHeight - fadeMargin) edgeAlpha = Math.max(0, (viewHeight - this.posY) / fadeMargin);
-                
-                const combinedAlpha = pulseVal * edgeAlpha;
-
                 drawContext.save();
-                drawContext.beginPath();
-                drawContext.rect(0, 0, viewWidth, viewHeight);
-                drawContext.clip();
                 
                 if (engineConfig.mood === 'space') {
                     const centerX = viewWidth/2, centerY = viewHeight/2;
                     const x = centerX + (this.posX/this.posZ)*1000, y = centerY + (this.posY/this.posZ)*1000;
                     const px = centerX + (this.posX/this.oldZ)*1000, py = centerY + (this.posY/this.oldZ)*1000;
-                    const size = (1 - this.posZ/2000) * (engineConfig.size/15);
-                    this.renderGlow(x, y, size, activeHue, combinedAlpha);
-                    drawContext.strokeStyle = `hsla(${activeHue}, 60%, 95%, ${combinedAlpha})`;
+                    const size = (1 - this.posZ/2000) * (engineConfig.size/15) * this.intrinsicScale;
+                    this.renderGlow(x, y, size, activeHue, pulseVal);
+                    drawContext.strokeStyle = `hsla(${activeHue}, 60%, 95%, ${pulseVal})`;
                     drawContext.lineWidth = Math.max(0.1, size);
                     drawContext.lineCap = 'round';
                     drawContext.beginPath(); drawContext.moveTo(x, y); drawContext.lineTo(px, py); drawContext.stroke();
-                    drawContext.fillStyle = `hsla(${activeHue}, 60%, 95%, ${combinedAlpha})`;
+                    drawContext.fillStyle = `hsla(${activeHue}, 60%, 95%, ${pulseVal})`;
                     drawContext.beginPath(); drawContext.arc(x, y, size/2, 0, Math.PI*2); drawContext.fill();
                 } else if (engineConfig.mood === 'bloom') {
-                    this.renderGlow(this.posX, this.posY, this.radius, activeHue, combinedAlpha);
+                    this.renderGlow(this.posX, this.posY, this.radius, activeHue, pulseVal);
                     drawContext.translate(this.posX, this.posY); drawContext.rotate(this.rotation + animationTime * 0.005);
                     const coreR = this.radius * 0.8;
-                    drawContext.fillStyle = `hsla(${activeHue}, 100%, 60%, ${0.6 * combinedAlpha})`;
+                    drawContext.fillStyle = `hsla(${activeHue}, 100%, 60%, ${0.6 * pulseVal})`;
                     for(let i=0; i<5; i++) {
                         drawContext.rotate((Math.PI*2)/5); drawContext.beginPath(); drawContext.moveTo(0,0);
                         drawContext.bezierCurveTo(coreR, -coreR, coreR*1.5, -coreR*0.5, coreR*1.5, 0);
                         drawContext.bezierCurveTo(coreR*1.5, coreR*0.5, coreR, coreR, 0,0); drawContext.fill();
                     }
                 } else if (engineConfig.mood === 'fire') {
-                    this.renderGlow(this.posX, this.posY, this.radius, activeHue, combinedAlpha);
+                    this.renderGlow(this.posX, this.posY, this.radius, activeHue, pulseVal);
                     const dynamicSize = this.radius * (1 + Math.sin(animationTime * 0.05 + this.cyclePhase) * 0.3);
-                    drawContext.fillStyle = `hsla(${activeHue}, 100%, 60%, ${combinedAlpha})`;
+                    drawContext.fillStyle = `hsla(${activeHue}, 100%, 60%, ${pulseVal})`;
                     drawContext.beginPath();
                     for(let i=0; i<6; i++) {
                         let angle = (i/6)*Math.PI*2 + this.rotation;
@@ -348,18 +326,18 @@
                     }
                     drawContext.closePath(); drawContext.fill();
                 } else if (engineConfig.mood === 'hearts') {
-                    this.renderGlow(this.posX, this.posY, this.radius, activeHue, combinedAlpha);
+                    this.renderGlow(this.posX, this.posY, this.radius, activeHue, pulseVal);
                     const s = this.radius * 0.6;
-                    drawContext.fillStyle = `hsla(${activeHue}, 100%, 50%, ${combinedAlpha})`;
+                    drawContext.fillStyle = `hsla(${activeHue}, 100%, 50%, ${pulseVal})`;
                     drawContext.beginPath(); drawContext.moveTo(this.posX, this.posY);
                     drawContext.bezierCurveTo(this.posX-s, this.posY-s, this.posX-s*1.5, this.posY+s/2, this.posX, this.posY+s*1.3);
                     drawContext.bezierCurveTo(this.posX+s*1.5, this.posY+s/2, this.posX+s, this.posY-s, this.posX, this.posY); drawContext.fill();
                 } else if (engineConfig.mood === 'bubbles') {
-                    this.renderGlow(this.posX, this.posY, this.radius, activeHue, combinedAlpha);
-                    drawContext.fillStyle = `hsla(${activeHue}, 100%, 50%, ${combinedAlpha})`; 
+                    this.renderGlow(this.posX, this.posY, this.radius, activeHue, pulseVal);
+                    drawContext.fillStyle = `hsla(${activeHue}, 100%, 50%, ${pulseVal})`; 
                     drawContext.beginPath(); drawContext.arc(this.posX, this.posY, this.radius/2, 0, Math.PI*2); drawContext.fill();
                 } else if (engineConfig.mood === 'rain') {
-                    drawContext.strokeStyle = `hsla(${activeHue}, 100%, 75%, ${0.6 * combinedAlpha})`; drawContext.lineWidth = 2;
+                    drawContext.strokeStyle = `hsla(${activeHue}, 100%, 75%, ${0.6 * pulseVal})`; drawContext.lineWidth = 2;
                     drawContext.beginPath(); drawContext.moveTo(this.posX, this.posY); drawContext.lineTo(this.posX, this.posY + this.radius); drawContext.stroke();
                 }
                 drawContext.restore();
@@ -374,9 +352,7 @@
             const isPhysicsMode = interactiveMoods.includes(selectedMood);
             document.body.classList.toggle('mouse-enabled', isPhysicsMode);
             document.body.classList.toggle('physics-enabled', isPhysicsMode);
-            refreshUiColor(); 
-            generateElementPool(); 
-            synchronizeUrlParameters();
+            refreshUiColor(); generateElementPool(); synchronizeUrlParameters();
             document.querySelectorAll('.mode-selector button').forEach(btn => btn.classList.toggle('active', btn.id === 'btn-'+selectedMood));
         }
 
@@ -424,7 +400,7 @@
 
         function startAnimationLoop() {
             animationTime++;
-            if (engineConfig.autohue) { engineConfig.hue = (engineConfig.hue + 0.5) % 360; refreshUiColor(); }
+            if (engineConfig.autohue) { engineConfig.hue = (engineConfig.hue + 0.5) % 360; refreshUiColor(); synchronizeUrlParameters(); }
             
             drawContext.clearRect(0, 0, viewWidth, viewHeight);
             
