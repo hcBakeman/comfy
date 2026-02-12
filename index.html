@@ -142,8 +142,9 @@
 
         const shortKeys = {mood:'m', count:'c', speed:'s', size:'z', hue:'h', autohue:'ah', glow:'g', glowIntensity:'gi', glowRadius:'gr', physics:'p', uiVisible:'u', mmode:'mm', mradius:'mr', mstrength:'mst', flickerStr:'fs', flickerSpeed:'fsp', hitbox:'hb', bgstyle:'bgs'};
 
+        // Updated default landing settings
         let engineConfig = {
-            mood: 'hearts', count: 491, speed: 1.3, size: 250, hue: 335, autohue: false, glow: true, glowIntensity: 30, glowRadius: 3.5, physics: true, uiVisible: true, mmode: 'off', mradius: 250, mstrength: 1.8, flickerStr: 0.3, flickerSpeed: 0.1, hitbox: 1.0, bgstyle: 'black'
+            mood: 'hearts', count: 298, speed: 0.2, size: 88, hue: 335, autohue: false, glow: true, glowIntensity: 30, glowRadius: 3.5, physics: true, uiVisible: true, mmode: 'off', mradius: 250, mstrength: 1.8, flickerStr: 0.3, flickerSpeed: 0.1, hitbox: 1.0, bgstyle: 'black'
         };
 
         function loadFromUrl() {
@@ -301,7 +302,6 @@
                 const pulseVal = (1 - engineConfig.flickerStr) + Math.sin(animationTime * currentPulseSpeed + this.cyclePhase) * engineConfig.flickerStr;
                 const activeHue = engineConfig.hue + this.hueVariation;
                 
-                // FIX: Calculate fade based on distance to any edge to smooth spawn/despawn
                 const fadeMargin = 150;
                 let edgeAlpha = 1.0;
                 if (this.posY < fadeMargin) edgeAlpha = Math.max(0, this.posY / fadeMargin);
