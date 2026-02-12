@@ -1,16 +1,45 @@
-# Comfy Engine | Wallpaper & Scene Tool
+🌌 Comfy Engine
+A high-performance visualizer for OBS Overlays, Live Wallpapers, and Web Backgrounds.
 
-A lightweight, reactive HTML5 canvas engine designed for desktop wallpapers (Lively/Wallpaper Engine), OBS stream overlays, or website backgrounds. 
+Comfy Engine provides smooth, aesthetic motion backgrounds with zero setup. Whether you need floating hearts for a stream, a starfield for your desktop, or a blooming background for a website, it handles the rendering with elegant efficiency.
 
-# Key Features
-Multiple Visual Moods: Choose between Hearts, Bubbles, Spirit Bloom, Fire, and Rain.
-Interactive Physics: Particles can avoid or follow your mouse with adjustable radius and strength.
-Collision Logic: Enable "Smooth Physics" to allow particles to interact and collide with each other.
-Deep Customization: Real-time sliders for Intensity, Speed, Size, Hue, and Flicker effects.
-Mouse Move: Interact with particles (when Interaction Mode is active).
+🚀 How to Use
+Launch: Open index.html in any web browser.
 
-# Quick Start
-1. Open `index.html`** in any modern web browser.
-2. Press `M`** to toggle the configuration menu.
-3. Adjust the sliders** to create your desired look.
-4. Copy the URL** to save your setup, or use the **"Copy URL"** button for a clean OBS integration.
+Customize: Press M to open the settings menu. Adjust the mood, colors, and intensity to your liking.
+
+Save: Your settings are automatically saved in the URL. Just bookmark the page or copy the link to keep your configuration.
+
+🎥 Use Cases
+OBS Studio Overlay
+Add atmospheric effects over your video feed.
+
+Set the background to Transparent in the menu.
+
+Use the Copy URL for OBS button to get a link that hides the menu by default.
+
+Add it as a Browser Source in OBS.
+
+Live Wallpaper
+Compatible with software like Wallpaper Engine or Lively Wallpaper.
+
+Simply point your wallpaper app to the index.html file.
+
+It automatically scales to fill any screen size or ultra-wide monitor.
+
+Web Background
+Perfect for landing pages or "Starting Soon" screens.
+
+The engine runs behind your content without interfering with clicks or navigation.
+
+✨ Features
+6 Visual Moods: Choose between Hearts, Bubbles, Spirit Bloom, Fire, Rain, or Space Travel.
+
+Atmospheric Glow: Objects softly fade in and out at the edges of the screen for a natural, premium look.
+
+Interactive: Elements can react to your mouse movements, avoiding or following your cursor.
+
+Smart Saving: Every change you make is reflected in the URL instantly.
+
+⌨️ Controls
+M — Toggle the Settings Menu
