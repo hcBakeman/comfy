@@ -1,45 +1,38 @@
-🌌 Comfy Engine
-A high-performance visualizer for OBS Overlays, Live Wallpapers, and Web Backgrounds.
-
-Comfy Engine provides smooth, aesthetic motion backgrounds with zero setup. Whether you need floating hearts for a stream, a starfield for your desktop, or a blooming background for a website, it handles the rendering with elegant efficiency.
-
-🚀 How to Use
+How to Use
 Launch: Open index.html in any web browser.
 
-Customize: Press M to open the settings menu. Adjust the mood, colors, and intensity to your liking.
+Customize: Press M to open the settings menu. Adjust moods, colors, and intensity.
 
-Save: Your settings are automatically saved in the URL. Just bookmark the page or copy the link to keep your configuration.
+Save: Settings are automatically saved in the URL. Bookmark the page or copy the link to retain your configuration.
 
-🎥 Use Cases
+Use Cases
 OBS Studio Overlay
-Add atmospheric effects over your video feed.
+Set Background to Transparent in the menu.
 
-Set the background to Transparent in the menu.
+Use the Copy URL for OBS button to generate a link that hides the menu by default.
 
-Use the Copy URL for OBS button to get a link that hides the menu by default.
-
-Add it as a Browser Source in OBS.
+Add the link as a Browser Source in OBS.
 
 Live Wallpaper
 Compatible with software like Wallpaper Engine or Lively Wallpaper.
 
-Simply point your wallpaper app to the index.html file.
+Point the application to the index.html file.
 
-It automatically scales to fill any screen size or ultra-wide monitor.
+The engine scales automatically to any screen size or ultra-wide monitor.
 
 Web Background
-Perfect for landing pages or "Starting Soon" screens.
+The engine runs behind your content without interfering with navigation or clicks.
 
-The engine runs behind your content without interfering with clicks or navigation.
+Features
+6 Visual Moods: Hearts, Bubbles, Spirit Bloom, Fire, Rain, and Space Travel.
 
-✨ Features
-6 Visual Moods: Choose between Hearts, Bubbles, Spirit Bloom, Fire, Rain, or Space Travel.
+Atmospheric Glow: Objects softly fade at the edges of the screen for a natural look.
 
-Atmospheric Glow: Objects softly fade in and out at the edges of the screen for a natural, premium look.
+Interaction: Elements can react to mouse movements by avoiding or following the cursor.
 
-Interactive: Elements can react to your mouse movements, avoiding or following your cursor.
+Smart Saving: All configuration changes are reflected in the URL instantly.
 
-Smart Saving: Every change you make is reflected in the URL instantly.
+Controls
+M: Toggle the Settings Menu.
 
-⌨️ Controls
-M — Toggle the Settings Menu
+Mouse: Interact with elements (when Interaction Mode is enabled).
